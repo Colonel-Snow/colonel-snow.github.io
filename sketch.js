@@ -326,9 +326,9 @@ function setup() {
   let cnv = createCanvas(W, H);
   cnv.style('position', 'absolute');
   cnv.style('top', '0px');
-  cnv.style('right', '0px');
-  cnv.style('transform-origin', 'top right'); // Critical: keeps it anchored to the corner when scaling
-
+  cnv.style('left', '0px'); // Changed from 'right' to 'left'
+  cnv.style('transform-origin', 'top left'); // Anchors the scale to the top left
+  
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
   wind.init(W, H);
