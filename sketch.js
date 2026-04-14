@@ -318,8 +318,8 @@ class Pollen {
 
 // ── p5 setup ──────────────────────────────────────────────────────
 function setup() {
-  W = 1200;
-  H = 500;
+  W = 3072;
+  H = 1280;
   createCanvas(W, H);
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
