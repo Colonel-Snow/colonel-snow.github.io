@@ -27,6 +27,8 @@ const WIND_DRAG = { tree: 1.0, grass: 0.65, weed: 0.35 };
 const HEAD_KEYPOINTS = [0, 1, 2, 3, 4];
 const HAND_KEYPOINTS = [9, 10];
 
+let currentScale = 1.0;
+
 // ── zone definitions ──────────────────────────────────────────────
 // Each zone occupies 1/3 of the canvas width.
 // Pollen stays inside its zone; face attraction only applies when
@@ -325,6 +327,28 @@ function setup() {
   cnv.style('position', 'absolute');
   cnv.style('top', '0px');
   cnv.style('right', '0px');
+  cnv.style('transform-origin', 'top right'); // Ensures scaling anchors to the corner
+
+  // ── Scale UI Controls ──
+  let scaleUpBtn = createButton('Scale +');
+  scaleUpBtn.position(20, 20);
+  scaleUpBtn.style('padding', '10px 15px');
+  scaleUpBtn.style('font-size', '16px');
+  scaleUpBtn.style('cursor', 'pointer');
+  scaleUpBtn.mousePressed(() => {
+    currentScale += 0.1;
+    cnv.style('transform', `scale(${currentScale})`);
+  });
+
+  let scaleDownBtn = createButton('Scale -');
+  scaleDownBtn.position(20, 70);
+  scaleDownBtn.style('padding', '10px 15px');
+  scaleDownBtn.style('font-size', '16px');
+  scaleDownBtn.style('cursor', 'pointer');
+  scaleDownBtn.mousePressed(() => {
+    currentScale = max(0.1, currentScale - 0.1); // Prevents scaling into nothing
+    cnv.style('transform', `scale(${currentScale})`);
+  });
 
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
