@@ -320,7 +320,12 @@ class Pollen {
 function setup() {
   W = 3072;
   H = 1280;
-  createCanvas(W, H);
+  
+  let cnv = createCanvas(W, H);
+  cnv.style('position', 'absolute');
+  cnv.style('top', '0px');
+  cnv.style('right', '0px');
+
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
   wind.init(W, H);
@@ -340,13 +345,13 @@ function setup() {
 }
 
 function startBodyPose() {
-  statusMsg = '📷 Starting camera…';
+  statusMsg = ''; // Emptied
   video = createCapture(VIDEO, () => {
     video.style('position', 'absolute');
     video.style('opacity', '0');
     video.style('pointer-events', 'none');
     bodyPose = ml5.bodyPose(video, { flipped: false }, () => {
-      statusMsg = 'Move head to attract pollen — wave hands to wipe it off!';
+      statusMsg = ''; // Emptied
       bodyPose.detectStart(video, (results) => {
         poses = results;
         if (results.length > 0) statusMsg = '';
