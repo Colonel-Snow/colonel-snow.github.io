@@ -327,28 +327,7 @@ function setup() {
   cnv.style('position', 'absolute');
   cnv.style('top', '0px');
   cnv.style('right', '0px');
-  cnv.style('transform-origin', 'top right'); // Ensures scaling anchors to the corner
-
-  // ── Scale UI Controls ──
-  let scaleUpBtn = createButton('Scale +');
-  scaleUpBtn.position(20, 20);
-  scaleUpBtn.style('padding', '10px 15px');
-  scaleUpBtn.style('font-size', '16px');
-  scaleUpBtn.style('cursor', 'pointer');
-  scaleUpBtn.mousePressed(() => {
-    currentScale += 0.1;
-    cnv.style('transform', `scale(${currentScale})`);
-  });
-
-  let scaleDownBtn = createButton('Scale -');
-  scaleDownBtn.position(20, 70);
-  scaleDownBtn.style('padding', '10px 15px');
-  scaleDownBtn.style('font-size', '16px');
-  scaleDownBtn.style('cursor', 'pointer');
-  scaleDownBtn.mousePressed(() => {
-    currentScale = max(0.1, currentScale - 0.1); // Prevents scaling into nothing
-    cnv.style('transform', `scale(${currentScale})`);
-  });
+  cnv.style('transform-origin', 'top right'); // Critical: keeps it anchored to the corner when scaling
 
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
@@ -360,6 +339,7 @@ function setup() {
     for (let i = 0; i < perZone; i++) particles.push(new Pollen(z));
   }
 
+  // Hiding leftover HTML elements
   ['clearBtn','bloomBtn','modeBtn','status'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -577,4 +557,19 @@ function drawDebug(attractors, hands) {
     circle(h.x, h.y, 100); // Approximate hand size
   }
   pop();
+}
+
+function keyPressed() {
+  const canvasEl = document.querySelector('canvas');
+  if (!canvasEl) return;
+
+  if (keyCode === UP_ARROW) {
+    currentScale += 0.1;
+    canvasEl.style.transform = `scale(${currentScale})`;
+    return false; // Prevents default browser scrolling
+  } else if (keyCode === DOWN_ARROW) {
+    currentScale = max(0.1, currentScale - 0.1);
+    canvasEl.style.transform = `scale(${currentScale})`;
+    return false; // Prevents default browser scrolling
+  }
 }
