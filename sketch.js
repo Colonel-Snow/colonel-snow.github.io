@@ -28,15 +28,13 @@ const HEAD_KEYPOINTS = [0, 1, 2, 3, 4];
 const HAND_KEYPOINTS = [9, 10];
 
 let currentScale = 1.0;
+let vScale = 1, vX = 0, vY = 0; // Added for video proportion scaling
 
 // ── zone definitions ──────────────────────────────────────────────
-// Each zone occupies 1/3 of the canvas width.
-// Pollen stays inside its zone; face attraction only applies when
-// the detected head centre falls within the same zone.
 const ZONE_DEFS = [
-  { type: 'tree',  label: 'Spring',  tint: [60, 160, 60,  18] },  // very faint green
-  { type: 'grass', label: 'Summer',  tint: [200, 110, 30, 18] },  // very faint amber
-  { type: 'weed',  label: 'Fall',    tint: [50,  90, 200, 18] },  // very faint blue
+  { type: 'tree',  label: 'Spring',  tint: [60, 160, 60,  18] },
+  { type: 'grass', label: 'Summer',  tint: [200, 110, 30, 18] },
+  { type: 'weed',  label: 'Fall',    tint: [50,  90, 200, 18] },
 ];
 
 // ── pollen type definitions ───────────────────────────────────────
@@ -183,7 +181,6 @@ class Pollen {
     this.reset(true);
   }
 
-  // Returns the left x boundary of this pollen's zone
   zoneLeft()  { return this.zoneIndex * (W / 3); }
   zoneRight() { return (this.zoneIndex + 1) * (W / 3); }
 
@@ -207,13 +204,11 @@ class Pollen {
   }
   
   attract(hx, hy) {
-    // Count down the stun timer before allowing attraction
     if (this.stunTimer > 0) {
       this.stunTimer--;
       return; 
     }
 
-    // Only attract if head is inside this pollen's zone
     if (hx < this.zoneLeft() || hx > this.zoneRight()) {
       this.hasFaceSlot = false;
       return;
@@ -250,13 +245,11 @@ class Pollen {
     const handSpeed = sqrt(hdx*hdx + hdy*hdy);
     if (handSpeed < WIPE_SPEED_MIN) return;
     
-    // We do NOT set this.hasFaceSlot = false here anymore. It remembers!
     this.inOrbit     = false;
     this.vx = hdx * WIPE_FLING_SCALE + random(-5, 5);
     this.vy = hdy * WIPE_FLING_SCALE + random(-5, 5);
     this.spin = random(-0.5, 0.5);
 
-    // Stun it for 30 to 70 frames before it rushes back
     this.stunTimer = random(30, 70);
   }
 
@@ -281,23 +274,19 @@ class Pollen {
       if (this.vy < this.baseVy * 0.25) this.vy += 0.006;
     }
 
-    // ── zone boundary enforcement ─────────────────────────────────
     const zl = this.zoneLeft();
     const zr = this.zoneRight();
 
     if (this.hasFaceSlot) {
-      // Actively pulled: allow crossing zone borders, but keep on canvas
       if (this.x < 0) { this.x = 0; this.vx = abs(this.vx) * 0.5; }
       if (this.x > W) { this.x = W; this.vx = -abs(this.vx) * 0.5; }
     } else {
-      // Not pulled: gently blow it back toward its home zone if it crossed
       if (this.x < zl) { 
         this.vx += 0.08; 
       } else if (this.x > zr) { 
         this.vx -= 0.08; 
       }
       
-      // Still enforce absolute canvas edges
       if (this.x < 0) { this.x = 0; this.vx = abs(this.vx) * 0.5; }
       if (this.x > W) { this.x = W; this.vx = -abs(this.vx) * 0.5; }
     }
@@ -326,20 +315,18 @@ function setup() {
   let cnv = createCanvas(W, H);
   cnv.style('position', 'absolute');
   cnv.style('top', '0px');
-  cnv.style('left', '0px'); // Changed from 'right' to 'left'
-  cnv.style('transform-origin', 'top left'); // Anchors the scale to the top left
+  cnv.style('left', '0px');
+  cnv.style('transform-origin', 'top left');
   
   pollenGfx = createGraphics(W, H);
   wind = new WindField();
   wind.init(W, H);
 
-  // Distribute pollen evenly across the three zones
   const perZone = floor(POLLEN_COUNT / 3);
   for (let z = 0; z < 3; z++) {
     for (let i = 0; i < perZone; i++) particles.push(new Pollen(z));
   }
 
-  // Hiding leftover HTML elements
   ['clearBtn','bloomBtn','modeBtn','status'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -349,13 +336,13 @@ function setup() {
 }
 
 function startBodyPose() {
-  statusMsg = ''; // Emptied
+  statusMsg = '';
   video = createCapture(VIDEO, () => {
     video.style('position', 'absolute');
     video.style('opacity', '0');
     video.style('pointer-events', 'none');
     bodyPose = ml5.bodyPose(video, { flipped: false }, () => {
-      statusMsg = ''; // Emptied
+      statusMsg = '';
       bodyPose.detectStart(video, (results) => {
         poses = results;
         if (results.length > 0) statusMsg = '';
@@ -366,9 +353,18 @@ function startBodyPose() {
 
 // ── p5 draw ───────────────────────────────────────────────────────
 function draw() {
-  if (video) {
-    push(); translate(W, 0); scale(-1, 1);
-    image(video, 0, 0, W, H);
+  // Proportional scaling for anti-stretch video
+  if (video && video.width > 0) {
+    vScale = max(W / video.width, H / video.height);
+    const vW = video.width * vScale;
+    const vH = video.height * vScale;
+    vX = (W - vW) / 2;
+    vY = (H - vH) / 2;
+
+    push(); 
+    translate(W, 0); 
+    scale(-1, 1);
+    image(video, vX, vY, vW, vH);
     pop();
   } else {
     background(26, 18, 5);
@@ -376,7 +372,6 @@ function draw() {
 
   wind.update();
 
-  // ── subtle zone tints ─────────────────────────────────────────
   noStroke();
   for (let z = 0; z < 3; z++) {
     const [r, g, b, a] = ZONE_DEFS[z].tint;
@@ -384,7 +379,6 @@ function draw() {
     rect(z * (W / 3), 0, W / 3, H);
   }
 
-  // ── vignette ─────────────────────────────────────────────────
   const ctx = drawingContext;
   ctx.save();
   const grad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.85);
@@ -395,7 +389,6 @@ function draw() {
   ctx.restore();
 
 
-  // ── zone dividers ────────────────────────────────────
   for (let z = 0; z < 3; z++) {
     const zx = z * (W / 3);
     if (z > 0) {
@@ -415,8 +408,9 @@ function draw() {
     for (const idx of HEAD_KEYPOINTS) {
       const kp = pose.keypoints[idx];
       if (!kp || kp.confidence < CONFIDENCE) continue;
-      sumX += map(kp.x, 0, video.width, W, 0);
-      sumY += map(kp.y, 0, video.height, 0, H);
+      // Updated coordinate math for anti-stretch
+      sumX += W - (kp.x * vScale + vX);
+      sumY += (kp.y * vScale + vY);
       count++;
     }
     if (count > 0) attractors.push({ hx: sumX / count, hy: sumY / count });
@@ -428,24 +422,21 @@ function draw() {
   if (poses.length > 0) {
     const pose = poses[0];
     
-    // Helper function to guess palm location by extending past the wrist
     const getHandPos = (elbowIdx, wristIdx) => {
       const elbow = pose.keypoints[elbowIdx];
       const wrist = pose.keypoints[wristIdx];
       if (elbow && wrist && elbow.confidence > CONFIDENCE && wrist.confidence > CONFIDENCE) {
-        // Map to canvas (flipped horizontally)
-        const ex = map(elbow.x, 0, video.width, W, 0);
-        const ey = map(elbow.y, 0, video.height, 0, H);
-        const wx = map(wrist.x, 0, video.width, W, 0);
-        const wy = map(wrist.y, 0, video.height, 0, H);
+        // Updated coordinate math for anti-stretch
+        const ex = W - (elbow.x * vScale + vX);
+        const ey = (elbow.y * vScale + vY);
+        const wx = W - (wrist.x * vScale + vX);
+        const wy = (wrist.y * vScale + vY);
         
-        // Extend the line from elbow -> wrist by 30% to reach the palm
         return { x: wx + (wx - ex) * 0.3, y: wy + (wy - ey) * 0.3 };
       }
       return null;
     };
 
-    // Calculate for left (7, 9) and right (8, 10) arms
     const leftPalm = getHandPos(7, 9);
     const rightPalm = getHandPos(8, 10);
     
@@ -458,7 +449,6 @@ function draw() {
     return { x: hp.x, y: hp.y, hdx: prev ? hp.x - prev.x : 0, hdy: prev ? hp.y - prev.y : 0 };
   });
 
-  // ── update & draw pollen ──────────────────────────────────────
   pollenGfx.clear();
   typeCounts = { tree: 0, grass: 0, weed: 0 };
 
@@ -471,7 +461,6 @@ function draw() {
   }
   image(pollenGfx, 0, 0);
 
-  // ── wrist indicators ─────────────────────────────────────────
   for (const h of hands) {
     const spd = sqrt(h.hdx*h.hdx + h.hdy*h.hdy);
     if (spd > WIPE_SPEED_MIN * 0.5) {
@@ -487,36 +476,28 @@ function draw() {
 function drawDebug(attractors, hands) {
   push();
   
-  // ── 1. Corner Registration Triangles ──
   fill(0, 255, 0, 180); 
   noStroke();
   const L = 40;
-  // Top Left
   triangle(0, 0, L, 0, 0, L);
-  // Top Right
   triangle(W, 0, W - L, 0, W, L);
-  // Bottom Left
   triangle(0, H, L, H, 0, H - L);
-  // Bottom Right
   triangle(W, H, W - L, H, W, H - L);
 
-  // Center crosshair
   stroke(0, 255, 0);
   strokeWeight(2);
   line(W/2 - 20, H/2, W/2 + 20, H/2);
   line(W/2, H/2 - 20, W/2, H/2 + 20);
 
-  // ── 2. Ruler Borders ──
   stroke(0, 255, 0);
   
-  // Horizontal (Top & Bottom)
   for (let x = 0; x <= W; x += 10) {
     let isMajor = (x % 50 === 0);
     let len = isMajor ? 18 : 6;
     strokeWeight(isMajor ? 2 : 1);
     
-    line(x, 0, x, len);         // Top edge
-    line(x, H, x, H - len);     // Bottom edge
+    line(x, 0, x, len);         
+    line(x, H, x, H - len);     
 
     if (isMajor && x > 0 && x < W) {
       noStroke(); fill(0, 255, 0); textSize(9); textAlign(CENTER, TOP);
@@ -525,14 +506,13 @@ function drawDebug(attractors, hands) {
     }
   }
 
-  // Vertical (Left & Right)
   for (let y = 0; y <= H; y += 10) {
     let isMajor = (y % 50 === 0);
     let len = isMajor ? 18 : 6;
     strokeWeight(isMajor ? 2 : 1);
     
-    line(0, y, len, y);         // Left edge
-    line(W, y, W - len, y);     // Right edge
+    line(0, y, len, y);         
+    line(W, y, W - len, y);     
 
     if (isMajor && y > 0 && y < H) {
       noStroke(); fill(0, 255, 0); textSize(9); textAlign(LEFT, CENTER);
@@ -541,20 +521,17 @@ function drawDebug(attractors, hands) {
     }
   }
 
-  /// ── 3. Simple Head & Hand Outlines ──
   noFill();
   strokeWeight(3);
   
-  // Head outline (Cyan)
   stroke(0, 255, 255, 200);
   for (const a of attractors) {
-    circle(a.hx, a.hy, 180); // Approximate head size
+    circle(a.hx, a.hy, 180); 
   }
 
-  // Hand outlines (Magenta)
   stroke(255, 0, 255, 200);
   for (const h of hands) {
-    circle(h.x, h.y, 100); // Approximate hand size
+    circle(h.x, h.y, 100); 
   }
   pop();
 }
@@ -566,10 +543,10 @@ function keyPressed() {
   if (keyCode === UP_ARROW) {
     currentScale += 0.1;
     canvasEl.style.transform = `scale(${currentScale})`;
-    return false; // Prevents default browser scrolling
+    return false; 
   } else if (keyCode === DOWN_ARROW) {
     currentScale = max(0.1, currentScale - 0.1);
     canvasEl.style.transform = `scale(${currentScale})`;
-    return false; // Prevents default browser scrolling
+    return false; 
   }
 }
