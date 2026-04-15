@@ -7,6 +7,10 @@ const STICK_FORCE    = 4.5;   // spring toward assigned face position
 const FRICTION       = 0.82;
 const CONFIDENCE     = 0.2;
 
+// Fixed simulation size (canvas is CSS-scaled to fit window)
+const SIM_W = 3072;
+const SIM_H = 1280;
+
 // ── wipe config ───────────────────────────────────────────────────
 const WIPE_RADIUS      = 50;
 const WIPE_SPEED_MIN   = 4;
@@ -30,11 +34,47 @@ const HAND_KEYPOINTS = [9, 10];
 let currentScale = 1.0;
 let vScale = 1, vX = 0, vY = 0; // Added for video proportion scaling
 
+// ── face collection HUD ────────────────────────────────────────────
+const FACE_POLLEN_THRESHOLD = 220;
+const FACE_BOX_STROKE_WEIGHT = 7;
+const SYMPTOM_REVEAL_INTERVAL_FRAMES = 28;
+
+const POLLEN_SYMPTOMS = {
+  tree: [
+    'Intense Nasal Congestion',
+    'Sudden Sneezing Fits',
+    'Watery, Red Eyes',
+    'Irritated Throat',
+    'Sinus Headaches',
+  ],
+  grass: [
+    'Runny Nose',
+    'Severe Eye Itching',
+    'Oral Irritation',
+    'Skin Sensitivity',
+    'Fatigue',
+  ],
+  weed: [
+    'Asthmatic Triggers',
+    'Persistent Post-Nasal Drip',
+    'Ear Pluggedness',
+    'Sleep Disruption',
+    'Chronic Irritation',
+  ],
+};
+
+let symptomBurst = {
+  type: null,
+  shown: 0,
+  nextFrame: 0,
+  items: [], // { text, x, y }
+};
+
 // ── zone definitions ──────────────────────────────────────────────
 const ZONE_DEFS = [
-  { type: 'tree',  label: 'Spring',  tint: [60, 160, 60,  18] },
-  { type: 'grass', label: 'Summer',  tint: [200, 110, 30, 18] },
-  { type: 'weed',  label: 'Fall',    tint: [50,  90, 200, 18] },
+  { type: 'tree',  label: 'Spring',  tint: [80, 190, 80,  120] },
+  { type: 'grass', label: 'Summer',  tint: [235, 135, 35, 120] },
+  { type: 'weed',  label: 'Fall',    tint: [70, 115, 255, 120] },
 ];
 
 // ── pollen type definitions ───────────────────────────────────────
@@ -309,8 +349,8 @@ class Pollen {
 
 // ── p5 setup ──────────────────────────────────────────────────────
 function setup() {
-  W = 3072;
-  H = 1280;
+  W = SIM_W;
+  H = SIM_H;
   
   let cnv = createCanvas(W, H);
   cnv.style('position', 'absolute');
@@ -333,6 +373,22 @@ function setup() {
   });
 
   startBodyPose();
+  updateCanvasTransform();
+}
+
+function updateCanvasTransform() {
+  const canvasEl = document.querySelector('canvas');
+  if (!canvasEl) return;
+  canvasEl.style.transform = `scale(${currentScale})`;
+  // Anchor to top-left (original behavior)
+  canvasEl.style.left = `0px`;
+  canvasEl.style.top  = `0px`;
+}
+
+function fitCanvasToWindow() {
+  // Scale down/up to fit window while preserving aspect ratio
+  currentScale = min(windowWidth / W, windowHeight / H);
+  updateCanvasTransform();
 }
 
 function startBodyPose() {
@@ -379,6 +435,21 @@ function draw() {
     rect(z * (W / 3), 0, W / 3, H);
   }
 
+  // Season labels (top-center of each column)
+  textAlign(CENTER, TOP);
+  textSize(64);
+  for (let z = 0; z < 3; z++) {
+    const cx = z * (W / 3) + (W / 6);
+    const label = ZONE_DEFS[z].label;
+    noStroke();
+    fill(0, 0, 0, 140);
+    rectMode(CENTER);
+    rect(cx, 92, textWidth(label) + 60, 92, 14);
+    fill(255, 255, 255, 235);
+    text(label, cx, 52);
+  }
+  rectMode(CORNER);
+
   const ctx = drawingContext;
   ctx.save();
   const grad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.85);
@@ -405,15 +476,30 @@ function draw() {
   if (poses.length > 0) {
     const pose = poses[0];
     let sumX = 0, sumY = 0, count = 0;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const idx of HEAD_KEYPOINTS) {
       const kp = pose.keypoints[idx];
       if (!kp || kp.confidence < CONFIDENCE) continue;
       // Updated coordinate math for anti-stretch
-      sumX += W - (kp.x * vScale + vX);
-      sumY += (kp.y * vScale + vY);
+      const sx = W - (kp.x * vScale + vX);
+      const sy = (kp.y * vScale + vY);
+      sumX += sx;
+      sumY += sy;
+      if (sx < minX) minX = sx;
+      if (sy < minY) minY = sy;
+      if (sx > maxX) maxX = sx;
+      if (sy > maxY) maxY = sy;
       count++;
     }
-    if (count > 0) attractors.push({ hx: sumX / count, hy: sumY / count });
+    if (count > 0) {
+      const hx = sumX / count;
+      const hy = sumY / count;
+      const faceW = maxX - minX;
+      const faceH = maxY - minY;
+      // Oversize square around face (bigger than detected head keypoints span)
+      const faceBoxSize = max(faceW, faceH) * 2.2 + 40;
+      attractors.push({ hx, hy, faceBoxSize });
+    }
   }
 
   // ── hand tracking ─────────────────────────────────────────────
@@ -522,11 +608,153 @@ function drawDebug(attractors, hands) {
   }
 
   noFill();
-  strokeWeight(3);
-  
-  stroke(0, 255, 255, 200);
+  strokeWeight(FACE_BOX_STROKE_WEIGHT);
+
+  // Face collection stats (pollen currently stuck/assigned to the face)
+  let faceCollected = 0;
+  const faceTypeCounts = { tree: 0, grass: 0, weed: 0 };
+  for (const pk of particles) {
+    if (!pk.hasFaceSlot) continue;
+    faceCollected++;
+    faceTypeCounts[pk.type] = (faceTypeCounts[pk.type] || 0) + 1;
+  }
+  let faceType = 'none';
+  let best = 0;
+  for (const t of Object.keys(faceTypeCounts)) {
+    if (faceTypeCounts[t] > best) {
+      best = faceTypeCounts[t];
+      faceType = t;
+    }
+  }
+
   for (const a of attractors) {
-    circle(a.hx, a.hy, 180); 
+    const s = a.faceBoxSize ?? 180;
+    rectMode(CENTER);
+
+    const shouldBlink = faceCollected > FACE_POLLEN_THRESHOLD;
+    const showBox = !shouldBlink || (frameCount % 24) < 12;
+    if (showBox) {
+      stroke(255, 0, 0, 235);
+      rect(a.hx, a.hy, s, s);
+    }
+
+    // HUD text (white text on red background badges)
+    const drawBadge = (label, x, y, alignH, alignV, size) => {
+      textSize(size);
+      textAlign(alignH, alignV);
+      const padX = 18, padY = 14;
+      const tw = textWidth(label);
+      const th = textAscent() + textDescent();
+      let bx = x, by = y;
+      if (alignH === CENTER) bx -= tw / 2;
+      if (alignH === RIGHT)  bx -= tw;
+      if (alignV === CENTER) by -= th / 2;
+      if (alignV === BOTTOM) by -= th;
+      noStroke();
+      rectMode(CORNER);
+      fill(255, 0, 0, 235);
+      rect(bx - padX, by - padY, tw + padX * 2, th + padY * 2, 8);
+      fill(255, 255, 255, 250);
+      text(label, x, y);
+    };
+
+    const drawDarkBadge = (label, x, y, alignH, alignV, size) => {
+      textSize(size);
+      textAlign(alignH, alignV);
+      const padX = 18, padY = 14;
+      const tw = textWidth(label);
+      const th = textAscent() + textDescent();
+      let bx = x, by = y;
+      if (alignH === CENTER) bx -= tw / 2;
+      if (alignH === RIGHT)  bx -= tw;
+      if (alignV === CENTER) by -= th / 2;
+      if (alignV === BOTTOM) by -= th;
+      noStroke();
+      rectMode(CORNER);
+      fill(0, 0, 0, 215);
+      rect(bx - padX, by - padY, tw + padX * 2, th + padY * 2, 10);
+      fill(255, 255, 255, 250);
+      text(label, x, y);
+    };
+
+    // top-left outside square: pollen type
+    drawBadge(faceType, a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 100);
+    // bottom-left outside square: collected count
+    drawBadge(`${faceCollected}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 100);
+    // bottom-right outside square: threshold
+    drawBadge(`${FACE_POLLEN_THRESHOLD}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 100);
+
+    // Symptoms overlay: reveal one-by-one around the face square
+    let qualifiedType = null;
+    for (const t of ['tree', 'grass', 'weed']) {
+      if ((faceTypeCounts[t] || 0) >= FACE_POLLEN_THRESHOLD) { qualifiedType = t; break; }
+    }
+
+    if (!qualifiedType) {
+      symptomBurst.type = null;
+      symptomBurst.shown = 0;
+      symptomBurst.nextFrame = 0;
+      symptomBurst.items = [];
+    } else {
+      if (symptomBurst.type !== qualifiedType) {
+        symptomBurst.type = qualifiedType;
+        symptomBurst.shown = 0;
+        symptomBurst.nextFrame = frameCount;
+        symptomBurst.items = [];
+      }
+
+      const lines = POLLEN_SYMPTOMS[qualifiedType] || [];
+      const maxToShow = lines.length;
+
+      const symptomSize = 100;
+      // Spawn next symptom at a random spot around the square
+      if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
+        const label = `${lines[symptomBurst.shown]}`;
+
+        textSize(symptomSize);
+        const tw = textWidth(label);
+        const th = textAscent() + textDescent();
+        const padX = 18, padY = 14;
+        const boxW = tw + padX * 2;
+        const boxH = th + padY * 2;
+
+        const margin = 18;
+        const ring = 26;
+        const minSep = 26;
+        // try a few times to keep it nicely around the square + on-canvas,
+        // and not too close to existing symptom badges
+        let px = a.hx + s / 2 + margin;
+        let py = a.hy - s / 2;
+        for (let tries = 0; tries < 30; tries++) {
+          const ang = random(TWO_PI);
+          const r = (s / 2) + ring + random(0, 70);
+          px = a.hx + cos(ang) * r;
+          py = a.hy + sin(ang) * r;
+          px = constrain(px, 10 + boxW / 2, W - 10 - boxW / 2);
+          py = constrain(py, 10 + boxH / 2, H - 10 - boxH / 2);
+          // keep it outside the square bounds (with margin)
+          if (!(abs(px - a.hx) > s / 2 + margin || abs(py - a.hy) > s / 2 + margin)) continue;
+
+          let ok = true;
+          for (const it of symptomBurst.items) {
+            const dx = px - it.x;
+            const dy = py - it.y;
+            // simple separation check + rough box overlap avoidance
+            if (sqrt(dx*dx + dy*dy) < max(boxW, boxH) * 0.55 + minSep) { ok = false; break; }
+          }
+          if (ok) break;
+        }
+
+        symptomBurst.items.push({ text: label, x: px, y: py });
+        symptomBurst.shown++;
+        symptomBurst.nextFrame = frameCount + SYMPTOM_REVEAL_INTERVAL_FRAMES;
+      }
+
+      // Draw revealed symptoms
+      for (const it of symptomBurst.items) {
+        drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, symptomSize);
+      }
+    }
   }
 
   stroke(255, 0, 255, 200);
@@ -536,17 +764,21 @@ function drawDebug(attractors, hands) {
   pop();
 }
 
+function windowResized() {
+  updateCanvasTransform();
+}
+
 function keyPressed() {
   const canvasEl = document.querySelector('canvas');
   if (!canvasEl) return;
 
   if (keyCode === UP_ARROW) {
     currentScale += 0.1;
-    canvasEl.style.transform = `scale(${currentScale})`;
+    updateCanvasTransform();
     return false; 
   } else if (keyCode === DOWN_ARROW) {
     currentScale = max(0.1, currentScale - 0.1);
-    canvasEl.style.transform = `scale(${currentScale})`;
+    updateCanvasTransform();
     return false; 
   }
 }
