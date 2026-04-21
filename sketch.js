@@ -701,7 +701,7 @@ function drawDebug(attractors, hands) {
     // Add symptoms progressively
     if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
       const label = lines[symptomBurst.shown];
-      const symptomSize = 58;
+      const symptomSize = 4;
       textSize(symptomSize);
       const tw = textWidth(label);
       const th = textAscent() + textDescent();
