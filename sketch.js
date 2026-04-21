@@ -559,9 +559,11 @@ function draw() {
   drawDebug(attractors, hands);
 }
 
+
 function drawDebug(attractors, hands) {
   push();
   
+  // Keep the corner triangles
   fill(0, 255, 0, 180); 
   noStroke();
   const L = 40;
@@ -570,42 +572,13 @@ function drawDebug(attractors, hands) {
   triangle(0, H, L, H, 0, H - L);
   triangle(W, H, W - L, H, W, H - L);
 
+  // Keep the center crosshair
   stroke(0, 255, 0);
   strokeWeight(2);
   line(W/2 - 20, H/2, W/2 + 20, H/2);
   line(W/2, H/2 - 20, W/2, H/2 + 20);
 
-  stroke(0, 255, 0);
-  
-  for (let x = 0; x <= W; x += 10) {
-    let isMajor = (x % 50 === 0);
-    let len = isMajor ? 18 : 6;
-    strokeWeight(isMajor ? 2 : 1);
-    
-    line(x, 0, x, len);         
-    line(x, H, x, H - len);     
-
-    if (isMajor && x > 0 && x < W) {
-      noStroke(); fill(0, 255, 0); textSize(9); textAlign(CENTER, TOP);
-      text(x, x, len + 2);
-      stroke(0, 255, 0);
-    }
-  }
-
-  for (let y = 0; y <= H; y += 10) {
-    let isMajor = (y % 50 === 0);
-    let len = isMajor ? 18 : 6;
-    strokeWeight(isMajor ? 2 : 1);
-    
-    line(0, y, len, y);         
-    line(W, y, W - len, y);     
-
-    if (isMajor && y > 0 && y < H) {
-      noStroke(); fill(0, 255, 0); textSize(9); textAlign(LEFT, CENTER);
-      text(y, len + 4, y);
-      stroke(0, 255, 0);
-    }
-  }
+  // --- Ruler marks have been removed from here ---
 
   noFill();
   strokeWeight(FACE_BOX_STROKE_WEIGHT);
@@ -721,8 +694,6 @@ function drawDebug(attractors, hands) {
         const margin = 18;
         const ring = 26;
         const minSep = 26;
-        // try a few times to keep it nicely around the square + on-canvas,
-        // and not too close to existing symptom badges
         let px = a.hx + s / 2 + margin;
         let py = a.hy - s / 2;
         for (let tries = 0; tries < 30; tries++) {
@@ -732,14 +703,12 @@ function drawDebug(attractors, hands) {
           py = a.hy + sin(ang) * r;
           px = constrain(px, 10 + boxW / 2, W - 10 - boxW / 2);
           py = constrain(py, 10 + boxH / 2, H - 10 - boxH / 2);
-          // keep it outside the square bounds (with margin)
           if (!(abs(px - a.hx) > s / 2 + margin || abs(py - a.hy) > s / 2 + margin)) continue;
 
           let ok = true;
           for (const it of symptomBurst.items) {
             const dx = px - it.x;
             const dy = py - it.y;
-            // simple separation check + rough box overlap avoidance
             if (sqrt(dx*dx + dy*dy) < max(boxW, boxH) * 0.55 + minSep) { ok = false; break; }
           }
           if (ok) break;
