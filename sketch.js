@@ -445,7 +445,7 @@ function draw() {
 
   // Season labels (top-center of each column)
   textAlign(CENTER, TOP);
-  textSize(64);
+  textSize(20);
   for (let z = 0; z < 3; z++) {
     const cx = z * (W / 3) + (W / 6);
     const label = ZONE_DEFS[z].label;
