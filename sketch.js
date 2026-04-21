@@ -35,31 +35,38 @@ let currentScale = 1.0;
 let vScale = 1, vX = 0, vY = 0; // Added for video proportion scaling
 
 // ── face collection HUD ────────────────────────────────────────────
-const FACE_POLLEN_THRESHOLD = 220;
+// Specific thresholds based on pollen type measurements
+const POLLEN_THRESHOLDS = {
+  tree: 90,
+  grass: 20,
+  weed: 50
+};
+
 const FACE_BOX_STROKE_WEIGHT = 7;
 const SYMPTOM_REVEAL_INTERVAL_FRAMES = 28;
 
+// Ordered from Mild (1st) to Severe (5th)
 const POLLEN_SYMPTOMS = {
   tree: [
-    'Intense Nasal Congestion',
-    'Sudden Sneezing Fits',
-    'Watery, Red Eyes',
-    'Irritated Throat',
-    'Sinus Headaches',
+    'Mild: Sniffles',
+    'Moderate: Nasal Congestion',
+    'Moderate: Watery, Red Eyes',
+    'Severe: Sudden Sneezing Fits',
+    'Severe: Sinus Headaches',
   ],
   grass: [
-    'Runny Nose',
-    'Severe Eye Itching',
-    'Oral Irritation',
-    'Skin Sensitivity',
-    'Fatigue',
+    'Mild: Tickly Throat',
+    'Moderate: Runny Nose',
+    'Moderate: Oral Irritation',
+    'Severe: Severe Eye Itching',
+    'Severe: Fatigue',
   ],
   weed: [
-    'Asthmatic Triggers',
-    'Persistent Post-Nasal Drip',
-    'Ear Pluggedness',
-    'Sleep Disruption',
-    'Chronic Irritation',
+    'Mild: Throat Clearing',
+    'Moderate: Persistent Post-Nasal Drip',
+    'Moderate: Ear Pluggedness',
+    'Severe: Sleep Disruption',
+    'Severe: Asthmatic Triggers',
   ],
 };
 
@@ -563,7 +570,6 @@ function draw() {
 function drawDebug(attractors, hands) {
   push();
   
-  // Keep the corner triangles
   fill(0, 255, 0, 180); 
   noStroke();
   const L = 40;
@@ -572,18 +578,15 @@ function drawDebug(attractors, hands) {
   triangle(0, H, L, H, 0, H - L);
   triangle(W, H, W - L, H, W, H - L);
 
-  // Keep the center crosshair
   stroke(0, 255, 0);
   strokeWeight(2);
   line(W/2 - 20, H/2, W/2 + 20, H/2);
   line(W/2, H/2 - 20, W/2, H/2 + 20);
 
-  // --- Ruler marks have been removed from here ---
-
   noFill();
   strokeWeight(FACE_BOX_STROKE_WEIGHT);
 
-  // Face collection stats (pollen currently stuck/assigned to the face)
+  // Tally pollen currently stuck to the face
   let faceCollected = 0;
   const faceTypeCounts = { tree: 0, grass: 0, weed: 0 };
   for (const pk of particles) {
@@ -591,11 +594,13 @@ function drawDebug(attractors, hands) {
     faceCollected++;
     faceTypeCounts[pk.type] = (faceTypeCounts[pk.type] || 0) + 1;
   }
-  let faceType = 'none';
-  let best = 0;
+  
+  // Find the dominant pollen type
+  let faceType = 'tree';
+  let dominantCount = 0;
   for (const t of Object.keys(faceTypeCounts)) {
-    if (faceTypeCounts[t] > best) {
-      best = faceTypeCounts[t];
+    if (faceTypeCounts[t] > dominantCount) {
+      dominantCount = faceTypeCounts[t];
       faceType = t;
     }
   }
@@ -604,14 +609,15 @@ function drawDebug(attractors, hands) {
     const s = a.faceBoxSize ?? 180;
     rectMode(CENTER);
 
-    const shouldBlink = faceCollected > FACE_POLLEN_THRESHOLD;
+    const currentThreshold = POLLEN_THRESHOLDS[faceType];
+    const shouldBlink = dominantCount >= currentThreshold;
     const showBox = !shouldBlink || (frameCount % 24) < 12;
     if (showBox) {
       stroke(255, 0, 0, 235);
       rect(a.hx, a.hy, s, s);
     }
 
-    // HUD text (white text on red background badges)
+    // HUD text
     const drawBadge = (label, x, y, alignH, alignV, size) => {
       textSize(size);
       textAlign(alignH, alignV);
@@ -650,79 +656,80 @@ function drawDebug(attractors, hands) {
       text(label, x, y);
     };
 
-    // top-left outside square: pollen type
-    drawBadge(faceType, a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 100);
-    // bottom-left outside square: collected count
-    drawBadge(`${faceCollected}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 100);
-    // bottom-right outside square: threshold
-    drawBadge(`${FACE_POLLEN_THRESHOLD}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 100);
+    // HUD Badges
+    drawBadge(faceType.toUpperCase(), a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 100);
+    drawBadge(`${dominantCount}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 100);
+    drawBadge(`Limit: ${currentThreshold}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 100);
 
-    // Symptoms overlay: reveal one-by-one around the face square
-    let qualifiedType = null;
-    for (const t of ['tree', 'grass', 'weed']) {
-      if ((faceTypeCounts[t] || 0) >= FACE_POLLEN_THRESHOLD) { qualifiedType = t; break; }
+    // Calculate progressive symptom tier based on ratio
+    let targetSymptoms = 0;
+    const ratio = dominantCount / currentThreshold;
+    if (ratio >= 0.5) targetSymptoms = 1; // Mild (50%)
+    if (ratio >= 1.0) targetSymptoms = 2; // Moderate (100%)
+    if (ratio >= 1.5) targetSymptoms = 3; // Moderate 2 (150%)
+    if (ratio >= 2.0) targetSymptoms = 4; // Severe (200%)
+    if (ratio >= 2.5) targetSymptoms = 5; // Max Severe (250%)
+
+    // Manage symptom burst lifecycle
+    if (symptomBurst.type !== faceType) {
+      symptomBurst.type = faceType;
+      symptomBurst.shown = 0;
+      symptomBurst.nextFrame = frameCount;
+      symptomBurst.items = [];
     }
 
-    if (!qualifiedType) {
-      symptomBurst.type = null;
-      symptomBurst.shown = 0;
-      symptomBurst.nextFrame = 0;
-      symptomBurst.items = [];
-    } else {
-      if (symptomBurst.type !== qualifiedType) {
-        symptomBurst.type = qualifiedType;
-        symptomBurst.shown = 0;
-        symptomBurst.nextFrame = frameCount;
-        symptomBurst.items = [];
-      }
+    const lines = POLLEN_SYMPTOMS[faceType] || [];
+    const maxToShow = Math.min(targetSymptoms, lines.length);
 
-      const lines = POLLEN_SYMPTOMS[qualifiedType] || [];
-      const maxToShow = lines.length;
-
+    // Add symptoms progressively
+    if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
+      const label = lines[symptomBurst.shown];
       const symptomSize = 100;
-      // Spawn next symptom at a random spot around the square
-      if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
-        const label = `${lines[symptomBurst.shown]}`;
+      textSize(symptomSize);
+      const tw = textWidth(label);
+      const th = textAscent() + textDescent();
+      const padX = 18, padY = 14;
+      const boxW = tw + padX * 2;
+      const boxH = th + padY * 2;
+      const margin = 18;
+      const ring = 26;
+      const minSep = 26;
+      
+      let px = a.hx + s / 2 + margin;
+      let py = a.hy - s / 2;
+      
+      for (let tries = 0; tries < 30; tries++) {
+        const ang = random(TWO_PI);
+        const r = (s / 2) + ring + random(0, 70);
+        px = a.hx + cos(ang) * r;
+        py = a.hy + sin(ang) * r;
+        px = constrain(px, 10 + boxW / 2, W - 10 - boxW / 2);
+        py = constrain(py, 10 + boxH / 2, H - 10 - boxH / 2);
+        if (!(abs(px - a.hx) > s / 2 + margin || abs(py - a.hy) > s / 2 + margin)) continue;
 
-        textSize(symptomSize);
-        const tw = textWidth(label);
-        const th = textAscent() + textDescent();
-        const padX = 18, padY = 14;
-        const boxW = tw + padX * 2;
-        const boxH = th + padY * 2;
-
-        const margin = 18;
-        const ring = 26;
-        const minSep = 26;
-        let px = a.hx + s / 2 + margin;
-        let py = a.hy - s / 2;
-        for (let tries = 0; tries < 30; tries++) {
-          const ang = random(TWO_PI);
-          const r = (s / 2) + ring + random(0, 70);
-          px = a.hx + cos(ang) * r;
-          py = a.hy + sin(ang) * r;
-          px = constrain(px, 10 + boxW / 2, W - 10 - boxW / 2);
-          py = constrain(py, 10 + boxH / 2, H - 10 - boxH / 2);
-          if (!(abs(px - a.hx) > s / 2 + margin || abs(py - a.hy) > s / 2 + margin)) continue;
-
-          let ok = true;
-          for (const it of symptomBurst.items) {
-            const dx = px - it.x;
-            const dy = py - it.y;
-            if (sqrt(dx*dx + dy*dy) < max(boxW, boxH) * 0.55 + minSep) { ok = false; break; }
-          }
-          if (ok) break;
+        let ok = true;
+        for (const it of symptomBurst.items) {
+          const dx = px - it.x;
+          const dy = py - it.y;
+          if (sqrt(dx*dx + dy*dy) < max(boxW, boxH) * 0.55 + minSep) { ok = false; break; }
         }
-
-        symptomBurst.items.push({ text: label, x: px, y: py });
-        symptomBurst.shown++;
-        symptomBurst.nextFrame = frameCount + SYMPTOM_REVEAL_INTERVAL_FRAMES;
+        if (ok) break;
       }
 
-      // Draw revealed symptoms
-      for (const it of symptomBurst.items) {
-        drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, symptomSize);
-      }
+      symptomBurst.items.push({ text: label, x: px, y: py });
+      symptomBurst.shown++;
+      symptomBurst.nextFrame = frameCount + SYMPTOM_REVEAL_INTERVAL_FRAMES;
+    }
+
+    // Remove symptoms if pollen count drops below tier
+    while (symptomBurst.shown > maxToShow) {
+      symptomBurst.items.pop();
+      symptomBurst.shown--;
+    }
+
+    // Draw revealed symptoms
+    for (const it of symptomBurst.items) {
+      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, 100);
     }
   }
 
