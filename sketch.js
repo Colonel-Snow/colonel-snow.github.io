@@ -70,12 +70,8 @@ const POLLEN_SYMPTOMS = {
   ],
 };
 
-let symptomBurst = {
-  type: null,
-  shown: 0,
-  nextFrame: 0,
-  items: [], // { text, x, y }
-};
+// Per-face symptom state (keyed by face id)
+let symptomBursts = {}; // { [faceId]: { type, shown, nextFrame, items } }
 
 // ── zone definitions ──────────────────────────────────────────────
 const ZONE_DEFS = [
@@ -225,6 +221,7 @@ class Pollen {
     this.faceOffsetX = 0;
     this.faceOffsetY = 0;
     this.hasFaceSlot = false;
+    this.faceId      = null;
     this.reset(true);
   }
 
@@ -247,10 +244,11 @@ class Pollen {
     this.spin    = random(-0.025, 0.025);
     this.inOrbit = false;
     this.hasFaceSlot = false;
+    this.faceId = null;
     this.stunTimer = 0;
   }
   
-  attract(hx, hy) {
+  attract(hx, hy, faceId) {
     if (this.stunTimer > 0) {
       this.stunTimer--;
       return; 
@@ -258,20 +256,23 @@ class Pollen {
 
     if (hx < this.zoneLeft() || hx > this.zoneRight()) {
       this.hasFaceSlot = false;
+      this.faceId = null;
       return;
     }
     const d = dist(this.x, this.y, hx, hy);
     if (d > ATTRACT_RADIUS) {
       this.hasFaceSlot = false;
+      this.faceId = null;
       return;
     }
-    if (!this.hasFaceSlot) {
+    if (!this.hasFaceSlot || this.faceId !== faceId) {
       const angle = random(TWO_PI);
       const rx = FACE_SPREAD * random(0.05, 1.0);
       const ry = FACE_SPREAD * 1.35 * random(0.05, 1.0);
       this.faceOffsetX = cos(angle) * rx;
       this.faceOffsetY = sin(angle) * ry;
       this.hasFaceSlot = true;
+      this.faceId = faceId;
     }
     const targetX = hx + this.faceOffsetX;
     const targetY = hy + this.faceOffsetY;
@@ -480,8 +481,8 @@ function draw() {
 
   // ── face attractor ────────────────────────────────────────────
   const attractors = [];
-  if (poses.length > 0) {
-    const pose = poses[0];
+  for (let pi = 0; pi < poses.length; pi++) {
+    const pose = poses[pi];
     let sumX = 0, sumY = 0, count = 0;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const idx of HEAD_KEYPOINTS) {
@@ -498,23 +499,22 @@ function draw() {
       if (sy > maxY) maxY = sy;
       count++;
     }
-    if (count > 0) {
-      const hx = sumX / count;
-      const hy = sumY / count;
-      const faceW = maxX - minX;
-      const faceH = maxY - minY;
-      // Oversize square around face (bigger than detected head keypoints span)
-      const faceBoxSize = max(faceW, faceH) * 2.2 + 40;
-      attractors.push({ hx, hy, faceBoxSize });
-    }
+    if (count <= 0) continue;
+    const hx = sumX / count;
+    const hy = sumY / count;
+    const faceW = maxX - minX;
+    const faceH = maxY - minY;
+    // Oversize square around face (bigger than detected head keypoints span)
+    const faceBoxSize = max(faceW, faceH) * 2.2 + 40;
+    attractors.push({ id: pi, hx, hy, faceBoxSize });
   }
 
   // ── hand tracking ─────────────────────────────────────────────
   prevHandPoints = handPoints.slice();
   handPoints = [];
-  if (poses.length > 0) {
-    const pose = poses[0];
-    
+  for (let pi = 0; pi < poses.length; pi++) {
+    const pose = poses[pi];
+
     const getHandPos = (elbowIdx, wristIdx) => {
       const elbow = pose.keypoints[elbowIdx];
       const wrist = pose.keypoints[wristIdx];
@@ -524,7 +524,7 @@ function draw() {
         const ey = (elbow.y * vScale + vY);
         const wx = W - (wrist.x * vScale + vX);
         const wy = (wrist.y * vScale + vY);
-        
+
         return { x: wx + (wx - ex) * 0.3, y: wy + (wy - ey) * 0.3 };
       }
       return null;
@@ -532,7 +532,7 @@ function draw() {
 
     const leftPalm = getHandPos(7, 9);
     const rightPalm = getHandPos(8, 10);
-    
+
     if (leftPalm) handPoints.push(leftPalm);
     if (rightPalm) handPoints.push(rightPalm);
   }
@@ -546,7 +546,17 @@ function draw() {
   typeCounts = { tree: 0, grass: 0, weed: 0 };
 
   for (const pk of particles) {
-    for (const { hx, hy } of attractors) pk.attract(hx, hy);
+    // choose nearest eligible face (same column + within radius)
+    let best = null;
+    let bestD = Infinity;
+    for (const a of attractors) {
+      if (a.hx < pk.zoneLeft() || a.hx > pk.zoneRight()) continue;
+      const d = dist(pk.x, pk.y, a.hx, a.hy);
+      if (d > ATTRACT_RADIUS) continue;
+      if (d < bestD) { bestD = d; best = a; }
+    }
+    if (best) pk.attract(best.hx, best.hy, best.id);
+    else { pk.hasFaceSlot = false; pk.faceId = null; }
     for (const h of hands) pk.wipe(h.x, h.y, h.hdx, h.hdy);
     pk.update();
     pk.draw(pollenGfx);
@@ -586,26 +596,30 @@ function drawDebug(attractors, hands) {
   noFill();
   strokeWeight(FACE_BOX_STROKE_WEIGHT);
 
-  // Tally pollen currently stuck to the face
-  let faceCollected = 0;
-  const faceTypeCounts = { tree: 0, grass: 0, weed: 0 };
+  // Tally pollen currently stuck to each face
+  const faceStats = {}; // { [faceId]: { total: number, typeCounts: {tree:number, grass:number, weed:number} } }
   for (const pk of particles) {
-    if (!pk.hasFaceSlot) continue;
-    faceCollected++;
-    faceTypeCounts[pk.type] = (faceTypeCounts[pk.type] || 0) + 1;
-  }
-  
-  // Find the dominant pollen type
-  let faceType = 'tree';
-  let dominantCount = 0;
-  for (const t of Object.keys(faceTypeCounts)) {
-    if (faceTypeCounts[t] > dominantCount) {
-      dominantCount = faceTypeCounts[t];
-      faceType = t;
-    }
+    if (!pk.hasFaceSlot || pk.faceId === null || pk.faceId === undefined) continue;
+    const fid = pk.faceId;
+    if (!faceStats[fid]) faceStats[fid] = { total: 0, typeCounts: { tree: 0, grass: 0, weed: 0 } };
+    faceStats[fid].total++;
+    faceStats[fid].typeCounts[pk.type] = (faceStats[fid].typeCounts[pk.type] || 0) + 1;
   }
 
   for (const a of attractors) {
+    const stats = faceStats[a.id] || { total: 0, typeCounts: { tree: 0, grass: 0, weed: 0 } };
+    const faceTypeCounts = stats.typeCounts;
+
+    // Find the dominant pollen type for this face
+    let faceType = 'tree';
+    let dominantCount = 0;
+    for (const t of Object.keys(faceTypeCounts)) {
+      if (faceTypeCounts[t] > dominantCount) {
+        dominantCount = faceTypeCounts[t];
+        faceType = t;
+      }
+    }
+
     const s = a.faceBoxSize ?? 180;
     rectMode(CENTER);
 
@@ -613,6 +627,7 @@ function drawDebug(attractors, hands) {
     const shouldBlink = dominantCount >= currentThreshold;
     const showBox = !shouldBlink || (frameCount % 24) < 12;
     if (showBox) {
+      noFill();
       stroke(255, 0, 0, 235);
       rect(a.hx, a.hy, s, s);
     }
@@ -671,6 +686,8 @@ function drawDebug(attractors, hands) {
     if (ratio >= 2.5) targetSymptoms = 5; // Max Severe (250%)
 
     // Manage symptom burst lifecycle
+    if (!symptomBursts[a.id]) symptomBursts[a.id] = { type: null, shown: 0, nextFrame: 0, items: [] };
+    const symptomBurst = symptomBursts[a.id];
     if (symptomBurst.type !== faceType) {
       symptomBurst.type = faceType;
       symptomBurst.shown = 0;
