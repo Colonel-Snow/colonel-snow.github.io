@@ -445,7 +445,7 @@ function draw() {
 
   // Season labels (top-center of each column)
   textAlign(CENTER, TOP);
-  textSize(4);
+  textSize(56);
   for (let z = 0; z < 3; z++) {
     const cx = z * (W / 3) + (W / 6);
     const label = ZONE_DEFS[z].label;
@@ -701,7 +701,7 @@ function drawDebug(attractors, hands) {
     // Add symptoms progressively
     if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
       const label = lines[symptomBurst.shown];
-      const symptomSize = 56;
+      const symptomSize = 4;
       textSize(symptomSize);
       const tw = textWidth(label);
       const th = textAscent() + textDescent();
