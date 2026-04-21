@@ -1,5 +1,5 @@
 // ── config ────────────────────────────────────────────────────────
-const POLLEN_COUNT   = 2000;
+const POLLEN_COUNT   = 4000;
 const ATTRACT_RADIUS = 240;
 const FACE_SPREAD    = 110;   // half-size of face scatter zone
 const ATTRACT_FORCE  = 2.8;
@@ -672,9 +672,9 @@ function drawDebug(attractors, hands) {
     };
 
     // HUD Badges
-    drawBadge(faceType.toUpperCase(), a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 100);
-    drawBadge(`${dominantCount}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 100);
-    drawBadge(`Limit: ${currentThreshold}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 100);
+    drawBadge(faceType.toUpperCase(), a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 58);
+    drawBadge(`${dominantCount}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 58);
+    drawBadge(`Limit: ${currentThreshold}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 58);
 
     // Calculate progressive symptom tier based on ratio
     let targetSymptoms = 0;
@@ -701,7 +701,7 @@ function drawDebug(attractors, hands) {
     // Add symptoms progressively
     if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
       const label = lines[symptomBurst.shown];
-      const symptomSize = 100;
+      const symptomSize = 58;
       textSize(symptomSize);
       const tw = textWidth(label);
       const th = textAscent() + textDescent();
@@ -746,7 +746,7 @@ function drawDebug(attractors, hands) {
 
     // Draw revealed symptoms
     for (const it of symptomBurst.items) {
-      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, 100);
+      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, 58);
     }
   }
 
