@@ -754,8 +754,8 @@ function drawDebug(attractors, hands) {
 
       symptomBurst.items.push({
         text: label,
-        x: px,
-        y: py,
+        offsetX: px - a.hx,
+        offsetY: py - a.hy,
         severity: symptomBurst.shown,
         bornFrame: frameCount
       });
@@ -771,10 +771,14 @@ function drawDebug(attractors, hands) {
 
     // Draw revealed symptoms — now using labelTextSize
     for (const it of symptomBurst.items) {
+      const followX = a.hx + it.offsetX;
+      const followY = a.hy + it.offsetY;
+      const clampedX = constrain(followX, 20, W - 20);
+      const clampedY = constrain(followY, 20, H - 20);
       drawSymptomBadge(
         it.text,
-        it.x,
-        it.y,
+        clampedX,
+        clampedY,
         CENTER,
         CENTER,
         labelTextSize,
