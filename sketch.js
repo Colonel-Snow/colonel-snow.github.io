@@ -32,10 +32,15 @@ const HEAD_KEYPOINTS = [0, 1, 2, 3, 4];
 const HAND_KEYPOINTS = [9, 10];
 
 let currentScale = 1.0;
-let vScale = 1, vX = 0, vY = 0; // Added for video proportion scaling
+let vScale = 1, vX = 0, vY = 0;
+
+// ── label text size ───────────────────────────────────────────────
+let labelTextSize = 58;
+const LABEL_TEXT_SIZE_MIN  = 12;
+const LABEL_TEXT_SIZE_MAX  = 120;
+const LABEL_TEXT_SIZE_STEP = 4;
 
 // ── face collection HUD ────────────────────────────────────────────
-// Specific thresholds based on pollen type measurements
 const POLLEN_THRESHOLDS = {
   tree: 90,
   grass: 20,
@@ -71,7 +76,7 @@ const POLLEN_SYMPTOMS = {
 };
 
 // Per-face symptom state (keyed by face id)
-let symptomBursts = {}; // { [faceId]: { type, shown, nextFrame, items } }
+let symptomBursts = {};
 
 // ── zone definitions ──────────────────────────────────────────────
 const ZONE_DEFS = [
@@ -388,13 +393,11 @@ function updateCanvasTransform() {
   const canvasEl = document.querySelector('canvas');
   if (!canvasEl) return;
   canvasEl.style.transform = `scale(${currentScale})`;
-  // Anchor to top-left (original behavior)
   canvasEl.style.left = `0px`;
   canvasEl.style.top  = `0px`;
 }
 
 function fitCanvasToWindow() {
-  // Scale down/up to fit window while preserving aspect ratio
   currentScale = min(windowWidth / W, windowHeight / H);
   updateCanvasTransform();
 }
@@ -417,7 +420,6 @@ function startBodyPose() {
 
 // ── p5 draw ───────────────────────────────────────────────────────
 function draw() {
-  // Proportional scaling for anti-stretch video
   if (video && video.width > 0) {
     vScale = max(W / video.width, H / video.height);
     const vW = video.width * vScale;
@@ -443,7 +445,7 @@ function draw() {
     rect(z * (W / 3), 0, W / 3, H);
   }
 
-  // Season labels (top-center of each column)
+  // Season labels
   textAlign(CENTER, TOP);
   textSize(56);
   for (let z = 0; z < 3; z++) {
@@ -467,7 +469,6 @@ function draw() {
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
 
-
   for (let z = 0; z < 3; z++) {
     const zx = z * (W / 3);
     if (z > 0) {
@@ -488,7 +489,6 @@ function draw() {
     for (const idx of HEAD_KEYPOINTS) {
       const kp = pose.keypoints[idx];
       if (!kp || kp.confidence < CONFIDENCE) continue;
-      // Updated coordinate math for anti-stretch
       const sx = W - (kp.x * vScale + vX);
       const sy = (kp.y * vScale + vY);
       sumX += sx;
@@ -504,7 +504,6 @@ function draw() {
     const hy = sumY / count;
     const faceW = maxX - minX;
     const faceH = maxY - minY;
-    // Oversize square around face (bigger than detected head keypoints span)
     const faceBoxSize = max(faceW, faceH) * 2.2 + 40;
     attractors.push({ id: pi, hx, hy, faceBoxSize });
   }
@@ -519,21 +518,19 @@ function draw() {
       const elbow = pose.keypoints[elbowIdx];
       const wrist = pose.keypoints[wristIdx];
       if (elbow && wrist && elbow.confidence > CONFIDENCE && wrist.confidence > CONFIDENCE) {
-        // Updated coordinate math for anti-stretch
         const ex = W - (elbow.x * vScale + vX);
         const ey = (elbow.y * vScale + vY);
         const wx = W - (wrist.x * vScale + vX);
         const wy = (wrist.y * vScale + vY);
-
         return { x: wx + (wx - ex) * 0.3, y: wy + (wy - ey) * 0.3 };
       }
       return null;
     };
 
-    const leftPalm = getHandPos(7, 9);
+    const leftPalm  = getHandPos(7, 9);
     const rightPalm = getHandPos(8, 10);
 
-    if (leftPalm) handPoints.push(leftPalm);
+    if (leftPalm)  handPoints.push(leftPalm);
     if (rightPalm) handPoints.push(rightPalm);
   }
   
@@ -546,7 +543,6 @@ function draw() {
   typeCounts = { tree: 0, grass: 0, weed: 0 };
 
   for (const pk of particles) {
-    // choose nearest eligible face (same column + within radius)
     let best = null;
     let bestD = Infinity;
     for (const a of attractors) {
@@ -597,7 +593,7 @@ function drawDebug(attractors, hands) {
   strokeWeight(FACE_BOX_STROKE_WEIGHT);
 
   // Tally pollen currently stuck to each face
-  const faceStats = {}; // { [faceId]: { total: number, typeCounts: {tree:number, grass:number, weed:number} } }
+  const faceStats = {};
   for (const pk of particles) {
     if (!pk.hasFaceSlot || pk.faceId === null || pk.faceId === undefined) continue;
     const fid = pk.faceId;
@@ -632,7 +628,6 @@ function drawDebug(attractors, hands) {
       rect(a.hx, a.hy, s, s);
     }
 
-    // HUD text
     const drawBadge = (label, x, y, alignH, alignV, size) => {
       textSize(size);
       textAlign(alignH, alignV);
@@ -671,19 +666,19 @@ function drawDebug(attractors, hands) {
       text(label, x, y);
     };
 
-    // HUD Badges
-    drawBadge(faceType.toUpperCase(), a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, 58);
-    drawBadge(`${dominantCount}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, 58);
-    drawBadge(`Limit: ${currentThreshold}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, 58);
+    // HUD Badges — now using labelTextSize
+    drawBadge(faceType.toUpperCase(), a.hx - s / 2 + 6, a.hy - s / 2 - 10, LEFT, BOTTOM, labelTextSize);
+    drawBadge(`${dominantCount}`, a.hx - s / 2 + 2, a.hy + s / 2 + 16, LEFT, TOP, labelTextSize);
+    drawBadge(`Limit: ${currentThreshold}`, a.hx + s / 2 - 2, a.hy + s / 2 + 16, RIGHT, TOP, labelTextSize);
 
     // Calculate progressive symptom tier based on ratio
     let targetSymptoms = 0;
     const ratio = dominantCount / currentThreshold;
-    if (ratio >= 0.5) targetSymptoms = 1; // Mild (50%)
-    if (ratio >= 1.0) targetSymptoms = 2; // Moderate (100%)
-    if (ratio >= 1.5) targetSymptoms = 3; // Moderate 2 (150%)
-    if (ratio >= 2.0) targetSymptoms = 4; // Severe (200%)
-    if (ratio >= 2.5) targetSymptoms = 5; // Max Severe (250%)
+    if (ratio >= 0.5) targetSymptoms = 1;
+    if (ratio >= 1.0) targetSymptoms = 2;
+    if (ratio >= 1.5) targetSymptoms = 3;
+    if (ratio >= 2.0) targetSymptoms = 4;
+    if (ratio >= 2.5) targetSymptoms = 5;
 
     // Manage symptom burst lifecycle
     if (!symptomBursts[a.id]) symptomBursts[a.id] = { type: null, shown: 0, nextFrame: 0, items: [] };
@@ -701,7 +696,7 @@ function drawDebug(attractors, hands) {
     // Add symptoms progressively
     if (symptomBurst.shown < maxToShow && frameCount >= symptomBurst.nextFrame) {
       const label = lines[symptomBurst.shown];
-      const symptomSize = 4;
+      const symptomSize = labelTextSize; // scales with label text size for correct collision sizing
       textSize(symptomSize);
       const tw = textWidth(label);
       const th = textAscent() + textDescent();
@@ -744,9 +739,9 @@ function drawDebug(attractors, hands) {
       symptomBurst.shown--;
     }
 
-    // Draw revealed symptoms
+    // Draw revealed symptoms — now using labelTextSize
     for (const it of symptomBurst.items) {
-      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, 58);
+      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, labelTextSize);
     }
   }
 
@@ -768,10 +763,16 @@ function keyPressed() {
   if (keyCode === UP_ARROW) {
     currentScale += 0.1;
     updateCanvasTransform();
-    return false; 
+    return false;
   } else if (keyCode === DOWN_ARROW) {
     currentScale = max(0.1, currentScale - 0.1);
     updateCanvasTransform();
-    return false; 
+    return false;
+  } else if (keyCode === LEFT_ARROW) {
+    labelTextSize = max(LABEL_TEXT_SIZE_MIN, labelTextSize - LABEL_TEXT_SIZE_STEP);
+    return false;
+  } else if (keyCode === RIGHT_ARROW) {
+    labelTextSize = min(LABEL_TEXT_SIZE_MAX, labelTextSize + LABEL_TEXT_SIZE_STEP);
+    return false;
   }
 }
