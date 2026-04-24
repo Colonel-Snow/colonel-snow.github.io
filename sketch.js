@@ -49,31 +49,40 @@ const POLLEN_THRESHOLDS = {
 
 const FACE_BOX_STROKE_WEIGHT = 7;
 const SYMPTOM_REVEAL_INTERVAL_FRAMES = 28;
+const SYMPTOM_POPIN_FRAMES = 24;
 
-// Ordered from Mild (1st) to Severe (5th)
+// Ordered from low severity (1st) to high severity (5th)
 const POLLEN_SYMPTOMS = {
   tree: [
-    'Mild: Sniffles',
-    'Moderate: Nasal Congestion',
-    'Moderate: Watery, Red Eyes',
-    'Severe: Sudden Sneezing Fits',
-    'Severe: Sinus Headaches',
+    'Sniffles',
+    'Nasal Congestion',
+    'Watery, Red Eyes',
+    'Sudden Sneezing Fits',
+    'Sinus Headaches',
   ],
   grass: [
-    'Mild: Tickly Throat',
-    'Moderate: Runny Nose',
-    'Moderate: Oral Irritation',
-    'Severe: Severe Eye Itching',
-    'Severe: Fatigue',
+    'Tickly Throat',
+    'Runny Nose',
+    'Oral Irritation',
+    'Eye Itching',
+    'Fatigue',
   ],
   weed: [
-    'Mild: Throat Clearing',
-    'Moderate: Persistent Post-Nasal Drip',
-    'Moderate: Ear Pluggedness',
-    'Severe: Sleep Disruption',
-    'Severe: Asthmatic Triggers',
+    'Throat Clearing',
+    'Persistent Post-Nasal Drip',
+    'Ear Pluggedness',
+    'Sleep Disruption',
+    'Asthmatic Triggers',
   ],
 };
+
+const SYMPTOM_SEVERITY_COLORS = [
+  [230, 210, 95],  // level 1
+  [238, 184, 82],  // level 2
+  [242, 151, 74],  // level 3
+  [233, 118, 66],  // level 4
+  [217, 84, 66],   // level 5
+];
 
 // Per-face symptom state (keyed by face id)
 let symptomBursts = {};
@@ -433,7 +442,7 @@ function draw() {
     image(video, vX, vY, vW, vH);
     pop();
   } else {
-    background(26, 18, 5);
+    background(37, 28, 10);
   }
 
   wind.update();
@@ -451,11 +460,11 @@ function draw() {
   for (let z = 0; z < 3; z++) {
     const cx = z * (W / 3) + (W / 6);
     const label = ZONE_DEFS[z].label;
-    noStroke();
-    fill(0, 0, 0, 140);
+      noStroke();
+      fill(64, 44, 18, 150);
     rectMode(CENTER);
     rect(cx, 92, textWidth(label) + 60, 92, 14);
-    fill(255, 255, 255, 235);
+      fill(255, 246, 222, 240);
     text(label, cx, 52);
   }
   rectMode(CORNER);
@@ -464,7 +473,7 @@ function draw() {
   ctx.save();
   const grad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, H*0.85);
   grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.55)');
+  grad.addColorStop(1, 'rgba(36,24,8,0.42)');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
@@ -472,7 +481,7 @@ function draw() {
   for (let z = 0; z < 3; z++) {
     const zx = z * (W / 3);
     if (z > 0) {
-      stroke(255, 255, 255, 30); strokeWeight(1);
+      stroke(255, 230, 170, 38); strokeWeight(1);
       line(zx, 0, zx, H);
       noStroke();
     }
@@ -584,7 +593,7 @@ function drawDebug(attractors, hands) {
   triangle(0, H, L, H, 0, H - L);
   triangle(W, H, W - L, H, W, H - L);
 
-  stroke(0, 255, 0);
+  stroke(204, 255, 174);
   strokeWeight(2);
   line(W/2 - 20, H/2, W/2 + 20, H/2);
   line(W/2, H/2 - 20, W/2, H/2 + 20);
@@ -624,7 +633,7 @@ function drawDebug(attractors, hands) {
     const showBox = !shouldBlink || (frameCount % 24) < 12;
     if (showBox) {
       noFill();
-      stroke(255, 0, 0, 235);
+      stroke(255, 160, 95, 235);
       rect(a.hx, a.hy, s, s);
     }
 
@@ -641,29 +650,44 @@ function drawDebug(attractors, hands) {
       if (alignV === BOTTOM) by -= th;
       noStroke();
       rectMode(CORNER);
-      fill(255, 0, 0, 235);
+      fill(238, 140, 72, 235);
       rect(bx - padX, by - padY, tw + padX * 2, th + padY * 2, 8);
-      fill(255, 255, 255, 250);
+      fill(255, 249, 232, 250);
       text(label, x, y);
     };
 
-    const drawDarkBadge = (label, x, y, alignH, alignV, size) => {
+    const drawSymptomBadge = (label, x, y, alignH, alignV, size, severityIndex, birthFrame) => {
       textSize(size);
       textAlign(alignH, alignV);
       const padX = 18, padY = 14;
       const tw = textWidth(label);
       const th = textAscent() + textDescent();
+      const level = constrain(severityIndex, 0, SYMPTOM_SEVERITY_COLORS.length - 1);
+      const col = SYMPTOM_SEVERITY_COLORS[level];
+      const age = frameCount - birthFrame;
+      const t = constrain(age / SYMPTOM_POPIN_FRAMES, 0, 1);
+      const eased = 1 - pow(1 - t, 3);
+      const rise = (1 - eased) * 22;
+      const alphaScale = map(t, 0, 1, 0.1, 1);
+      const scaleAmt = 0.86 + eased * 0.14;
       let bx = x, by = y;
       if (alignH === CENTER) bx -= tw / 2;
       if (alignH === RIGHT)  bx -= tw;
       if (alignV === CENTER) by -= th / 2;
       if (alignV === BOTTOM) by -= th;
+
+      push();
+      translate(x, y - rise);
+      scale(scaleAmt);
       noStroke();
-      rectMode(CORNER);
-      fill(0, 0, 0, 215);
-      rect(bx - padX, by - padY, tw + padX * 2, th + padY * 2, 10);
-      fill(255, 255, 255, 250);
-      text(label, x, y);
+      rectMode(CENTER);
+      fill(34, 22, 8, 190 * alphaScale);
+      rect(0, 3, tw + padX * 2 + 12, th + padY * 2 + 12, 16);
+      fill(col[0], col[1], col[2], 240 * alphaScale);
+      rect(0, 0, tw + padX * 2, th + padY * 2, 14);
+      fill(255, 249, 230, 250 * alphaScale);
+      text(label, 0, 0);
+      pop();
     };
 
     // HUD Badges — now using labelTextSize
@@ -728,7 +752,13 @@ function drawDebug(attractors, hands) {
         if (ok) break;
       }
 
-      symptomBurst.items.push({ text: label, x: px, y: py });
+      symptomBurst.items.push({
+        text: label,
+        x: px,
+        y: py,
+        severity: symptomBurst.shown,
+        bornFrame: frameCount
+      });
       symptomBurst.shown++;
       symptomBurst.nextFrame = frameCount + SYMPTOM_REVEAL_INTERVAL_FRAMES;
     }
@@ -741,7 +771,16 @@ function drawDebug(attractors, hands) {
 
     // Draw revealed symptoms — now using labelTextSize
     for (const it of symptomBurst.items) {
-      drawDarkBadge(it.text, it.x, it.y, CENTER, CENTER, labelTextSize);
+      drawSymptomBadge(
+        it.text,
+        it.x,
+        it.y,
+        CENTER,
+        CENTER,
+        labelTextSize,
+        it.severity,
+        it.bornFrame
+      );
     }
   }
 
