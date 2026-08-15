@@ -1,0 +1,128 @@
+/*
+  A distinct warm/cream "shop" palette local to this section, inspired by
+  vintage-artwork storefronts — overrides the base tokens within .gallery
+  only, the same way Home commits to its own dark palette.
+*/
+.gallery {
+  --color-text: #2a2521;
+  --color-text-muted: #8a8074;
+  --color-border: #e4dcce;
+
+  width: 100%;
+  background: #f6f1e9;
+}
+
+.gallery__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-9) clamp(1.5rem, 5vw, 4rem) var(--space-10);
+}
+
+.gallery__intro {
+  margin-bottom: var(--space-9);
+  max-width: 640px;
+}
+
+.gallery__intro-body {
+  margin-top: var(--space-3);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+  max-width: 46ch;
+}
+
+.gallery__intro-body code {
+  font-size: 0.9em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+/* Bento grid: uniform row height, cells vary only in column span so every
+   tile — wide or narrow — stays landscape-shaped, never square or tall. */
+.gallery__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: clamp(160px, 20vw, 280px);
+  gap: var(--space-6);
+}
+
+.gallery__card {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.gallery__card--wide {
+  grid-column: span 2;
+}
+
+.gallery__mat {
+  flex: 1;
+  min-height: 0;
+  background: #ffffff;
+  padding: var(--space-3);
+  box-shadow: 0 1px 3px rgba(42, 37, 33, 0.08);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.gallery__card:hover .gallery__mat {
+  box-shadow: 0 8px 20px rgba(42, 37, 33, 0.12);
+}
+
+.gallery__tile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.gallery__card:hover .gallery__tile-image {
+  transform: scale(1.03);
+}
+
+.gallery__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gallery__tag {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.gallery__caption {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+}
+
+@media (max-width: 800px) {
+  .gallery__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .gallery__card--wide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gallery__card--wide {
+    grid-column: span 1;
+  }
+}
