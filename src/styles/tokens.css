@@ -1,0 +1,79 @@
+/*
+  Design tokens — the single source of truth for type and spacing.
+  Everything else in the app should reference these custom properties
+  rather than hardcoding px/rem values.
+*/
+
+:root {
+  /* ---------------------------------- */
+  /* Type                                */
+  /* ---------------------------------- */
+
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+
+  /* Scale — base 16px, 1.25 (major third) ratio */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-base: 1rem;     /* 16px */
+  --text-md: 1.125rem;   /* 18px */
+  --text-lg: 1.25rem;    /* 20px */
+  --text-xl: 1.5rem;     /* 24px */
+  --text-2xl: 1.875rem;  /* 30px */
+  --text-3xl: 2.25rem;   /* 36px */
+  --text-4xl: 3rem;      /* 48px */
+  --text-5xl: 3.75rem;   /* 60px */
+
+  --font-regular: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  --leading-tight: 1.1;    /* large display headings */
+  --leading-snug: 1.25;    /* headings */
+  --leading-normal: 1.5;   /* body copy */
+  --leading-relaxed: 1.65; /* long-form / readable blocks */
+
+  --tracking-tight: -0.02em; /* large headings */
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;   /* small caps / eyebrow labels */
+
+  /* ---------------------------------- */
+  /* Spacing — base 4px unit             */
+  /* ---------------------------------- */
+
+  --space-0: 0;
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.5rem;   /* 24px */
+  --space-6: 2rem;     /* 32px */
+  --space-7: 3rem;     /* 48px */
+  --space-8: 4rem;     /* 64px */
+  --space-9: 6rem;     /* 96px */
+  --space-10: 8rem;    /* 128px */
+
+  /* ---------------------------------- */
+  /* Color — minimal neutral scaffold    */
+  /* ---------------------------------- */
+
+  --color-bg: #ffffff;
+  --color-text: #1a1a1e;
+  --color-text-muted: #6b6b73;
+  --color-border: #e5e4e7;
+  --color-accent: #3b3bff;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #121214;
+    --color-text: #f2f2f4;
+    --color-text-muted: #9a9aa3;
+    --color-border: #2a2a2f;
+    --color-accent: #8f8fff;
+  }
+}
