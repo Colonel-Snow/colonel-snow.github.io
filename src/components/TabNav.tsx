@@ -1,6 +1,6 @@
 import './TabNav.css'
 
-export type Tab = 'home' | 'foundations' | 'gallery'
+export type Tab = 'home' | 'foundations' | 'gallery' | 'resume'
 
 interface TabNavProps {
   active: Tab
@@ -11,6 +11,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'foundations', label: 'Typography & Components' },
   { id: 'gallery', label: 'Gallery' },
+  { id: 'resume', label: 'Resume' },
 ]
 
 function TabNav({ active, onChange }: TabNavProps) {

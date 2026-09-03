@@ -1,0 +1,141 @@
+.resume {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-9) var(--space-5) var(--space-10);
+}
+
+.resume__header {
+  margin-bottom: var(--space-9);
+}
+
+.resume__title {
+  margin-top: var(--space-2);
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+}
+
+.resume__contact {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.resume__contact a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.resume__contact a:hover {
+  color: var(--color-accent);
+}
+
+.resume__download {
+  display: inline-block;
+  margin-top: var(--space-5);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.resume__download:hover {
+  text-decoration: underline;
+}
+
+.resume__section + .resume__section {
+  margin-top: var(--space-8);
+}
+
+.resume__section-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.resume__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.resume__entry-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.resume__entry-head h3 {
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+}
+
+.resume__dates {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.resume__entry-subhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+  font-style: italic;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.resume__bullets {
+  margin: var(--space-3) 0 0;
+  padding-left: 1.1em;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.resume__bullets li {
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+}
+
+.resume__skills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.resume__skills li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.resume__skills-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+}
+
+.resume__skills-value {
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}

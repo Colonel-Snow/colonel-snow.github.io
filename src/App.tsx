@@ -3,6 +3,7 @@ import TabNav, { type Tab } from './components/TabNav'
 import Home from './pages/Home'
 import Foundations from './pages/Foundations'
 import Gallery from './pages/Gallery'
+import Resume from './pages/Resume'
 import './App.css'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
       {tab === 'home' && <Home />}
       {tab === 'foundations' && <Foundations />}
       {tab === 'gallery' && <Gallery />}
+      {tab === 'resume' && <Resume />}
     </div>
   )
 }
