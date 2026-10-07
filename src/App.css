@@ -3,3 +3,27 @@
   flex-direction: column;
   min-height: 100svh;
 }
+
+/*
+  Master control — pinned to the bottom-right of the viewport and held on
+  its own layer. `isolation` gives it a private stacking context so nothing
+  a page does can reorder it, and `fixed` keeps it out of page layout.
+*/
+.site-controls {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  translate: -50% 0;
+  z-index: var(--layer-controls);
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+@media (max-width: 720px) {
+  .site-controls {
+    bottom: var(--space-4);
+    gap: var(--space-2);
+  }
+}

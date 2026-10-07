@@ -24,6 +24,22 @@
   color: var(--color-text);
 }
 
+.foundations__note {
+  margin-top: calc(var(--space-5) * -1 + var(--space-1));
+  margin-bottom: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.foundations__note--after {
+  margin-top: var(--space-5);
+  margin-bottom: 0;
+}
+
+.foundations__note--after code {
+  font-size: 0.9em;
+}
+
 .foundations__section + .foundations__section {
   margin-top: var(--space-8);
 }
@@ -137,4 +153,87 @@
   height: var(--space-3);
   background: var(--color-accent);
   border-radius: 2px;
+}
+
+/* Typefaces */
+
+.font-scale {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.font-scale__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.font-scale__sample {
+  font-size: var(--text-lg);
+}
+
+.font-scale__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.font-scale__label {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.font-scale__token {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Radii & overlay swatches */
+
+.swatch-scale {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.swatch-scale__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.swatch-scale__chip {
+  width: var(--space-7);
+  height: var(--space-6);
+  flex: none;
+}
+
+.swatch-scale__chip--radius {
+  background: var(--color-accent);
+}
+
+.swatch-scale__chip--color {
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background-image:
+    linear-gradient(45deg, var(--color-border) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--color-border) 25%, transparent 25%);
+  background-size: var(--space-3) var(--space-3);
+}
+
+.swatch-scale__token {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }

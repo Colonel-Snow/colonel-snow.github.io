@@ -1,0 +1,177 @@
+%-------------------------
+% Kernell Snow Resume
+% License : MIT
+%------------------------
+
+\documentclass[letterpaper,11pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\input{glyphtounicode}
+
+\usepackage[default]{sourcesanspro}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\Large
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+\pdfgentounicode=1
+
+% Bump up body text size for readability
+\renewcommand{\small}{\fontsize{10.5pt}{12.5pt}\selectfont}
+
+\newcommand{\resumeItem}[1]{
+  \item\small{
+    {#1 \vspace{-2pt}}
+  }
+}
+
+% #1 title, #2 dates, #3 organization
+\newcommand{\resumeSubheading}[3]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{\large #1}, \textit{\small #3} & {\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \large#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+\begin{document}
+
+\definecolor{headernavy}{RGB}{30,27,75}
+
+{\Huge\bfseries\color{headernavy} Kernell Snow}\par
+\vspace{4pt}
+\small\color{gray}
+Product Designer\ \ $\vert$\ \ \href{https://ksnow.framer.website/}{ksnow.framer.website}\ \ $\vert$\ \ \href{https://www.linkedin.com/in/kernellsnow}{in/kernellsnow}\ \ $\vert$\ \ \href{mailto:kernellsnow@gmail.com}{kernellsnow@gmail.com}
+\color{black}
+\vspace{6pt}
+
+\section{Experience}
+  \resumeSubHeadingListStart
+
+% TODO: confirm start date (assumed Aug. 2026) and fill in course name/number + headcounts
+    \resumeSubheading
+      {Graduate Teaching Assistant}{Aug. 2026 -- Present}
+      {Georgia Institute of Technology}
+      \resumeItemListStart
+      \resumeItem{Lead weekly recitations and design critiques for Intro to Human Computer Interaction, advising \textbf{91 students} on their design thinking and visual communication skills.}
+        \resumeItem{Mentor \textbf{[N] Master's and PhD student teams} through a semester-long HCI design project, guiding them through the entire end-to-end design process.}
+      \resumeItemListEnd
+
+% TODO: start date collides with the ConstructConnect internship below (both May 2026)
+    \resumeSubheading
+      {Graduate Researcher}{May 2026 -- Present}
+      {AI CARING}
+      \resumeItemListStart
+        \resumeItem{Redesigned a data-validation tool into a simplified, task-driven interface, reducing home set up and data implementation process by \textbf{25\%}.}
+        \resumeItem{Lead recurring feedback sessions for \textbf{16 seniors} living with in-home AI devices, translating those findings into prioritized design recommendations for the AI team.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Product Design Intern}{May 2026 -- Aug. 2026}
+      {ConstructConnect}
+      \resumeItemListStart
+        \resumeItem{Redesigned the User Management Portal's Role Based Access system and interface, unifying \textbf{5 disparate permission models} and fragmented display patterns into a single toggle-based, group-based access system.}
+        \resumeItem{Validated designs through 2 rounds of usability testing (10 participants each), uncovering the \textbf{permission model as the root cause} of user confusion, not the UI.}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {UX Design Engineer}{Aug. 2019 -- Jun. 2025}
+      {University of Alaska, Fairbanks}
+      \resumeItemListStart
+        \resumeItem{Led end-to-end UX redesigns and built a 22-component design system across the college application portal and 100+ eCampus pages, serving 21,000+ students and faculty, driving a \textbf{43\%} increase in completed applications and \textbf{33\%} more web sessions.}
+        \resumeItem{Launched a new CRM system and optimized critical user journeys, reducing application processing time by \textbf{20\%} and streamlining student communication workflows by \textbf{15\%.}}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+\section{Projects}
+  \resumeSubHeadingListStart
+
+% TODO: fill in role, dates, and context -- no details captured yet
+    \resumeSubheading
+      {[PROJECT NAME]}{[START] -- [END]}
+      {Mercedes-Benz Stadium}
+      \resumeItemListStart
+        \resumeItem{[ACTION] for \textbf{[WHAT -- e.g. wayfinding, concessions ordering, gameday app]}, [TASK -- scope, constraints, who it served], [RESULT].}
+        \resumeItem{[RESEARCH ACTION -- e.g. observed or interviewed \textbf{[N] attendees}] to [WHAT YOU LEARNED], informing [DESIGN DECISION].}
+        \resumeItem{[DELIVERABLE] that [OUTCOME -- adoption, stakeholder decision, measured improvement].}
+      \resumeItemListEnd
+
+    \resumeSubheading
+      {Immersive Children's Treehouse Exhibit}{Aug. 2025 -- Dec. 2025}
+      {Georgia Aquarium (Sponsored Project)}
+      \resumeItemListStart
+        \resumeItem{Designed and iteratively prototyped 3 immersive treehouse themed children's exhibit within a 12ft diameter footprint, evaluating 5 prototypes through iterative user testing with \textbf{26 children}.}
+        \resumeItem{Conducted mixed-methods research and co-design sessions with \textbf{42 children} to uncover how they learn and engage in play spaces, informing the exhibit's interaction design.}
+      \resumeItemListEnd
+
+  \resumeSubHeadingListEnd
+
+\section{Education}
+  \resumeSubHeadingListStart
+    \resumeSubheading
+      {Georgia Institute of Technology}{Aug. 2025 -- May 2027}
+      {M.S. in Human Computer Interaction}
+    \resumeSubheading
+      {University of Alaska, Fairbanks}{Aug. 2017 -- May 2021}
+      {B.S. in Computer Science, Minor in Math}
+  \resumeSubHeadingListEnd
+
+\section{Skills}
+ \begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+     \textbf{Design}{: UX Design, UI Design, Interaction Design, Information Architecture (IA), Wireframing, Prototyping, AI Assisted Prototyping, Design Systems, Accessible Design, Data-Driven UX, Front-End Implementation} \\
+    
+     \textbf{Tools}{: Figma, FigJam, Miro, UserTesting, Adobe Creative Suite, Claude, Cursor, Lovable, React/Next.js} \\
+    }}
+ \end{itemize}
+\end{document}

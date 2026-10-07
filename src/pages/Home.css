@@ -1,9 +1,80 @@
+/*
+  Home — a full-bleed photograph read through camcorder viewfinder chrome.
+  Every value here resolves to a token in src/styles/tokens.css; the overlay
+  colors are theme-independent because they sit on the photo, not the page.
+*/
+
 .scene {
   position: relative;
+  flex: 1;
   width: 100%;
-  min-height: 100svh;
+  min-height: calc(var(--space-10) * 4);
   overflow: hidden;
   background: #000;
+
+  /* Inset of the frame chrome from the edges of the viewport. */
+  --scene-inset-x: var(--space-5);
+  --scene-inset-y: var(--space-5);
+
+  /*
+    Photo framing. --photo-aspect must equal the source file's width/height;
+    it is what lets the plate cover any viewport. --photo-anchor is where the title
+    sits in that file, measured from its top; the name is centred on it.
+    --photo-zoom is the only dial: raise it to lift the name up the screen,
+    at the cost of enlarging a 1215px-wide source.
+  */
+  --photo-aspect: 1.40625;
+  --photo-zoom: 1.08;
+  --photo-anchor: 24.2%;
+  --photo-offset-y: 0%;
+  /* Slides the photo inside the plate, leaving the name where it is. */
+  --photo-offset-x: 0%;
+
+  /*
+    Name spacing. Only the sunset has something flying through the name, so
+    only it opens a gap for the gull. The name block itself stays centred on
+    the frame — the bird is treated as part of the title and is free to sit
+    off-centre within the gap.
+  */
+  --name-gap: var(--space-5);
+
+  /*
+    Handheld drift. --pointer-* is written by the scene's drift hook and runs
+    -1 to 1 across the viewport; each layer multiplies it by its own travel,
+    so the photo swings furthest, the focus frame trails it, and the corner
+    brackets stay nailed to the glass. Travel has to stay inside the slack
+    the zoom leaves over the viewport, or the photo pulls off the frame.
+  */
+  --pointer-x: 0;
+  --pointer-y: 0;
+  --drift-photo-x: 16px;
+  --drift-photo-y: 10px;
+  --drift-frame-x: 6px;
+  --drift-frame-y: 4px;
+}
+
+[data-scene='day'] {
+  --name-gap: calc(var(--space-10) + var(--space-6));
+  /*
+    The name block is centred on the frame, and the gull sits a little left
+    of its own centre in the photo, so the photo shifts right until the bird
+    lands in the middle of the gap. It moves the picture, not the type.
+  */
+  --photo-offset-x: 2.1%;
+}
+
+/* Sized to cover the viewport at any shape, with the photo's own ratio. */
+.scene__plate {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate:
+    calc(-50% - (var(--pointer-x) * var(--drift-photo-x)))
+    calc(
+      -50% + var(--photo-offset-y) - (var(--pointer-y) * var(--drift-photo-y))
+    );
+  width: calc(max(100%, 100svh * var(--photo-aspect)) * var(--photo-zoom));
+  aspect-ratio: var(--photo-aspect);
 }
 
 .scene__image {
@@ -12,213 +83,622 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 50% 35%;
   display: block;
+  translate: var(--photo-offset-x) 0;
 }
 
-.scene__grid {
+.scene__scrim {
   position: absolute;
   inset: 0;
-  pointer-events: none;
-}
-
-.scene__grid-line {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.scene__grid-line--v1 {
-  left: 33.333%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-}
-
-.scene__grid-line--v2 {
-  left: 66.666%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-}
-
-.scene__grid-line--h1 {
-  top: 33.333%;
-  left: 0;
-  right: 0;
-  height: 1px;
-}
-
-.scene__grid-line--h2 {
-  top: 66.666%;
-  left: 0;
-  right: 0;
-  height: 1px;
+  background: var(--color-scrim);
 }
 
 .scene__hud {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: var(--space-5);
-  font-family: var(--font-mono);
-  color: #f4f4f5;
-  text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.75),
-    0 0 1px rgba(0, 0, 0, 0.9);
-  pointer-events: none;
+  color: var(--color-hud);
+  text-shadow: var(--shadow-hud);
 }
 
-.scene__hud-row {
+/* ---------------------------------- */
+/* Corner brackets & frame rules       */
+/* ---------------------------------- */
+
+.scene__bracket {
+  position: absolute;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-thin) solid var(--color-hud-line);
 }
+
+.scene__bracket--tl {
+  top: var(--scene-inset-y);
+  left: var(--scene-inset-x);
+  align-items: flex-start;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.scene__bracket--tr {
+  top: var(--scene-inset-y);
+  right: var(--scene-inset-x);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: var(--space-9);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* A length of the frame edge, picked up again beside the focus area. */
+.scene__rule {
+  position: absolute;
+  background: var(--color-hud-line);
+}
+
+.scene__rule--right {
+  top: 30%;
+  bottom: 34%;
+  right: var(--scene-inset-x);
+  width: var(--border-thin);
+}
+
+/* ---------------------------------- */
+/* Recording state                     */
+/* ---------------------------------- */
 
 .scene__rec {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-thin) solid var(--color-hud-line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
   font-weight: var(--font-semibold);
   letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
 }
 
 .scene__rec-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #ff3b30;
-  box-shadow: 0 0 6px rgba(255, 59, 48, 0.8);
-  animation: scene-rec-pulse 1.4s ease-in-out infinite;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-hud-rec);
+  box-shadow: 0 0 var(--space-2) var(--color-hud-rec);
+  animation: scene-rec-blink 1.4s steps(1, end) infinite;
 }
 
-@keyframes scene-rec-pulse {
+@keyframes scene-rec-blink {
   0%,
-  100% {
+  55% {
     opacity: 1;
   }
-  50% {
-    opacity: 0.25;
+  56%,
+  100% {
+    opacity: 0.15;
   }
 }
 
-.scene__status {
+.scene__timecode {
+  font-family: var(--font-mono);
+  /* Same 18px as the map labels and the credential row. */
+  font-size: var(--text-md);
+  letter-spacing: var(--tracking-wide);
+  font-variant-numeric: tabular-nums;
+}
+
+.scene__icon {
+  display: block;
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+/* The corner controls: resume, LinkedIn, and the exposure switch. */
+.scene__tool {
+  display: block;
+  padding: 0;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: rotate 0.35s ease, scale 0.2s ease;
+}
+
+.scene__tool:hover {
+  scale: 1.15;
+}
+
+.scene__tool:focus-visible {
+  outline: var(--border-thick) solid var(--color-hud);
+  outline-offset: var(--space-1);
+}
+
+/* Flipped once the darker exposure is the one on screen. */
+[data-scene='night'] .scene__tool--exposure {
+  rotate: 180deg;
+}
+
+/* ---------------------------------- */
+/* Title block                         */
+/* ---------------------------------- */
+
+/* Positioned within the plate, so it holds its place against the photo. */
+.scene__titles {
+  position: absolute;
+  top: var(--photo-anchor);
+  left: 50%;
+  /*
+    The pointer terms add back exactly what the plate subtracts, so the name
+    keeps its place against the photo at any viewport shape while sitting
+    still under the cursor, like the rest of the overlay.
+  */
+  translate:
+    calc(-50% + (var(--pointer-x) * var(--drift-photo-x)))
+    calc(var(--pointer-y) * var(--drift-photo-y));
+  width: min(90%, calc(var(--space-10) * 7));
+  text-align: center;
+}
+
+.scene__name {
+  /* Lift by half a line so the name's centre lands on --photo-anchor. */
+  margin-top: -0.55em;
+  display: flex;
+  justify-content: center;
+  /* The gap is the point: the gull flies through the name. */
+  gap: var(--name-gap);
+  font-family: var(--font-display);
+  font-size: var(--text-display);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-hud);
+}
+
+.scene__tagline {
+  margin-top: var(--space-5);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-hud);
+}
+
+/* ---------------------------------- */
+/* Focus frame                         */
+/* ---------------------------------- */
+
+.scene__frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate:
+    calc(-50% - (var(--pointer-x) * var(--drift-frame-x)))
+    calc(-50% - (var(--pointer-y) * var(--drift-frame-y)));
+  width: min(36%, calc(var(--space-10) * 4));
+  height: min(30%, calc(var(--space-10) * 2.5));
+  border: var(--border-thin) solid var(--color-hud-veil);
+}
+
+/* Centre marks on each edge, pointing in. */
+.scene__frame-tick {
+  position: absolute;
+  background: var(--color-hud-line);
+}
+
+.scene__frame-tick--top,
+.scene__frame-tick--bottom {
+  left: 50%;
+  translate: -50% 0;
+  width: var(--border-thin);
+  height: var(--space-4);
+}
+
+.scene__frame-tick--top {
+  top: 0;
+}
+
+.scene__frame-tick--bottom {
+  bottom: 0;
+}
+
+.scene__frame-tick--left,
+.scene__frame-tick--right {
+  top: 50%;
+  translate: 0 -50%;
+  width: var(--space-4);
+  height: var(--border-thin);
+}
+
+.scene__frame-tick--left {
+  left: 0;
+}
+
+.scene__frame-tick--right {
+  right: 0;
+}
+
+/* ---------------------------------- */
+/* Viewfinder menu                     */
+/* ---------------------------------- */
+
+.scene__menu {
+  position: absolute;
+  top: 50%;
+  left: var(--scene-inset-x);
+  translate: 0 -50%;
+}
+
+.scene__menu-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.scene__menu-item {
+  display: block;
+  padding: 0;
+  font-family: inherit;
+  text-transform: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wider);
+  color: var(--color-hud-dim);
+  transform-origin: left center;
+  transition: color 0.2s ease, scale 0.2s ease;
+}
+
+.scene__menu-item:hover {
+  color: var(--color-hud);
+  scale: 1.18;
+}
+
+.scene__menu-item:focus-visible {
+  outline: var(--border-thick) solid var(--color-hud);
+  outline-offset: var(--space-1);
+}
+
+/* `Play` has no destination yet, so it is a label, not a control. */
+span.scene__menu-item {
+  cursor: default;
+}
+
+.scene__menu-item[data-active='true'] {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-hud);
+}
+
+/* ---------------------------------- */
+/* Corner cards                        */
+/* ---------------------------------- */
+
+.scene__corner {
+  position: absolute;
+  bottom: var(--scene-inset-y);
+  width: var(--space-9);
+  height: calc(var(--space-10) + var(--space-7));
+  border: var(--border-thin) solid var(--color-hud-line);
+}
+
+.scene__corner--bl {
+  left: var(--scene-inset-x);
+  border-right-color: transparent;
+  border-top-color: transparent;
+}
+
+.scene__corner--br {
+  right: var(--scene-inset-x);
+  border-left-color: transparent;
+  border-top-color: transparent;
+}
+
+.scene__card {
+  position: absolute;
+  bottom: calc(var(--scene-inset-y) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: calc(var(--space-10) + var(--space-9) + var(--space-4));
+}
+
+/* Held clear of the vertical frame rules, which sit at --scene-inset-x. */
+.scene__card--bl {
+  left: calc(var(--scene-inset-x) + var(--space-5));
+}
+
+.scene__card--br {
+  right: calc(var(--scene-inset-x) + var(--space-5));
+}
+
+.scene__card--button {
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.scene__card--button .scene__thumb {
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.scene__card--button:hover .scene__thumb {
+  background: var(--color-hud-veil);
+  border-color: var(--color-hud);
+}
+
+.scene__card--button:focus-visible {
+  outline: var(--border-thick) solid var(--color-hud);
+  outline-offset: var(--space-2);
+}
+
+/* ---------------------------------- */
+/* Grid map readout                    */
+/* ---------------------------------- */
+
+.scene__map {
+  position: relative;
+  height: var(--space-9);
+  overflow: hidden;
+  border: var(--border-thin) solid var(--color-hud-line);
+  /* Matches .scene__thumb, the card on the other side. */
+  border-radius: var(--radius-md);
+  transition: height 0.35s ease;
+}
+
+/*
+  Hovering opens the box up and pulls the map back, so the pin is read in
+  more of its surroundings. The card is anchored by its bottom edge, so the
+  box grows upward and the labels below it stay put.
+*/
+@media (hover: hover) {
+  .scene__map:hover {
+    height: calc(var(--space-9) + var(--space-7));
+  }
+
+  .scene__map:hover .scene__map-view {
+    width: calc(100% * var(--map-zoom-out));
+  }
+}
+
+/*
+  The frame the map is drawn into. It keeps the file's own aspect ratio and
+  overflows the card, which the card clips — a wide card cannot show all of
+  a squarer map without squashing it. The translate percentages resolve
+  against this frame's own size, so --map-focus lands at the card's centre
+  whatever the zoom, and the pin's coordinates stay equal to the place's
+  position in the source image.
+*/
+.scene__map-view {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% * var(--map-zoom));
+  aspect-ratio: var(--map-aspect);
+  translate: calc(-1 * var(--map-focus-x)) calc(-1 * var(--map-focus-y));
+  transition: width 0.35s ease;
+}
+
+/* The PNG carries the coastline in its alpha, so it masks a flat fill
+   rather than being drawn directly — the land can then take any colour. */
+.scene__map-land {
+  position: absolute;
+  inset: 0;
+  background: var(--color-map-land);
+  -webkit-mask-image: var(--map-src);
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: var(--map-src);
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+}
+
+.scene__map-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--color-map-grid) 0 var(--border-thin),
+      transparent var(--border-thin) var(--space-6)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--color-map-grid) 0 var(--border-thin),
+      transparent var(--border-thin) var(--space-6)
+    );
+}
+
+/* Marks the place named below. */
+.scene__map-pin {
+  position: absolute;
+  width: var(--space-3);
+  height: var(--space-3);
+  translate: -50% -50%;
+  border-radius: var(--radius-pill);
+  background: var(--color-hud);
+  box-shadow: var(--shadow-hud);
+}
+
+.scene__thumb {
+  position: relative;
+  display: block;
+  height: var(--space-9);
+  border: var(--border-thin) solid var(--color-hud-line);
+  border-radius: var(--radius-md);
+}
+
+.scene__thumb--filled {
+  background: var(--color-hud-veil);
+}
+
+/* The focus pip at the centre of a captured frame. */
+.scene__thumb::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-hud-dim);
+}
+
+.scene__card-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: capitalize;
+}
+
+.scene__card--br .scene__card-labels {
+  text-transform: uppercase;
+  font-size: var(--text-base);
+}
+
+/* ---------------------------------- */
+/* Credential line                     */
+/* ---------------------------------- */
+
+.scene__credential {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.scene__credential-box {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: var(--border-thin) solid var(--color-hud-line);
+}
+
+
+.scene__meta {
+  position: absolute;
+  bottom: calc(var(--scene-inset-y) + var(--space-4));
+  left: 50%;
+  translate: -50% 0;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-xs);
+  gap: var(--space-7);
+  /* Set to match .scene__card-labels, the type under the map. */
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
   letter-spacing: var(--tracking-wide);
+  text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.scene__status-item {
-  padding: 2px 6px;
-  border: 1px solid rgba(244, 244, 245, 0.6);
-  border-radius: 3px;
+/* ---------------------------------- */
+/* Responsive                          */
+/* ---------------------------------- */
+
+@media (min-width: 1024px) {
+  .scene {
+    --scene-inset-x: var(--space-8);
+    --scene-inset-y: var(--space-7);
+  }
 }
 
-.scene__signal {
-  display: inline-flex;
-  align-items: flex-end;
-  gap: 2px;
-  height: 12px;
-}
+@media (max-width: 720px) {
+  .scene {
+    --scene-inset-x: var(--space-4);
+    --scene-inset-y: var(--space-4);
+  }
 
-.scene__signal-bar {
-  width: 3px;
-  background: #f4f4f5;
-  border-radius: 1px;
-}
+  /*
+    The plate is far wider than a phone viewport, so the same percentage
+    shifts the photo much further here — and the gap is narrower. The gull
+    already falls near the middle of it unshifted.
+  */
+  [data-scene='day'] {
+    --name-gap: var(--space-7);
+    --photo-offset-x: 0%;
+  }
 
-.scene__battery {
-  position: relative;
-  width: 22px;
-  height: 11px;
-  border: 1px solid #f4f4f5;
-  border-radius: 2px;
-  display: inline-block;
-}
+  .scene__tagline {
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+  }
 
-.scene__battery-fill {
-  position: absolute;
-  inset: 2px 5px 2px 2px;
-  background: #f4f4f5;
-  border-radius: 1px;
-}
+  .scene__timecode {
+    font-size: var(--text-base);
+  }
 
-.scene__battery-tip {
-  position: absolute;
-  right: -3px;
-  top: 3px;
-  width: 2px;
-  height: 5px;
-  background: #f4f4f5;
-  border-radius: 0 1px 1px 0;
-}
+  .scene__rec {
+    font-size: var(--text-sm);
+  }
 
-.scene__focus-box {
-  position: absolute;
-  left: 39%;
-  top: 40%;
-  width: 26%;
-  height: 38%;
-}
-
-.scene__focus-corner {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 2px solid rgba(244, 244, 245, 0.85);
-}
-
-.scene__focus-corner--tl {
-  top: 0;
-  left: 0;
-  border-right: none;
-  border-bottom: none;
-}
-
-.scene__focus-corner--tr {
-  top: 0;
-  right: 0;
-  border-left: none;
-  border-bottom: none;
-}
-
-.scene__focus-corner--bl {
-  bottom: 0;
-  left: 0;
-  border-right: none;
-  border-top: none;
-}
-
-.scene__focus-corner--br {
-  bottom: 0;
-  right: 0;
-  border-left: none;
-  border-top: none;
-}
-
-.scene__exposure {
-  display: flex;
-  gap: var(--space-4);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wide);
-}
-
-.scene__timestamp {
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wide);
-}
-
-@media (max-width: 640px) {
-  .scene__status-item--wide {
+  .scene__rule--right,
+  .scene__corner {
     display: none;
   }
 
-  .scene__exposure span:first-child {
-    display: none;
+  /* Lift the cards so their labels clear the floating control. */
+  .scene__card {
+    bottom: calc(var(--scene-inset-y) + var(--space-4));
+    width: calc(var(--space-9) + var(--space-6));
+  }
+
+  .scene__thumb,
+  .scene__map {
+    height: var(--space-8);
+  }
+
+  .scene__card-labels,
+  .scene__card--br .scene__card-labels {
+    font-size: var(--text-xs);
+  }
+
+  /* Too long to hold one line at this width, so it wraps and centres. */
+  .scene__meta {
+    bottom: calc(var(--scene-inset-y) + var(--space-10) + var(--space-4));
+    gap: var(--space-2) var(--space-4);
+    width: calc(100% - var(--space-8));
+    flex-wrap: wrap;
+    justify-content: center;
+    white-space: normal;
+    font-size: var(--text-xs);
+  }
+
+  .scene__menu-item[data-active='true'] {
+    font-size: var(--text-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene__rec-dot {
+    animation: none;
+  }
+
+  .scene__menu-item,
+  .scene__card--button .scene__thumb,
+  .scene__map,
+  .scene__map-view,
+  .scene__tool {
+    transition: none;
   }
 }

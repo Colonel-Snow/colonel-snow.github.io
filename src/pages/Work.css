@@ -1,0 +1,152 @@
+/*
+  Featured projects. A light content page that keeps a little of the
+  viewfinder's language — mono readouts, frame corners, numbered shots —
+  without committing to the full camera treatment Home uses.
+*/
+
+.work {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-5) var(--space-10);
+}
+
+.work__intro {
+  margin-bottom: var(--space-9);
+}
+
+.work__intro-body {
+  margin-top: var(--space-4);
+  max-width: 48ch;
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}
+
+.work__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.work__item {
+  display: grid;
+  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+  padding-top: var(--space-8);
+  border-top: var(--border-thin) solid var(--color-border);
+}
+
+.work__item:first-child {
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Placeholder plate, bracketed like a frame waiting to be filled. */
+.work__frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.work__frame-corner {
+  position: absolute;
+  width: var(--space-5);
+  height: var(--space-5);
+  border: var(--border-thick) solid var(--color-text-muted);
+}
+
+.work__frame-corner--tl {
+  top: var(--space-3);
+  left: var(--space-3);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.work__frame-corner--tr {
+  top: var(--space-3);
+  right: var(--space-3);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.work__frame-corner--bl {
+  bottom: var(--space-3);
+  left: var(--space-3);
+  border-right-color: transparent;
+  border-top-color: transparent;
+}
+
+.work__frame-corner--br {
+  bottom: var(--space-3);
+  right: var(--space-3);
+  border-left-color: transparent;
+  border-top-color: transparent;
+}
+
+.work__index {
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-muted);
+}
+
+.work__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.work__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-2xl);
+}
+
+.work__summary {
+  margin-top: var(--space-3);
+  max-width: 54ch;
+  line-height: var(--leading-relaxed);
+  color: var(--color-text-muted);
+}
+
+.work__tags {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+}
+
+.work__tag {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+@media (max-width: 720px) {
+  .work {
+    padding: var(--space-9) var(--space-5) var(--space-9);
+  }
+
+  .work__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+}

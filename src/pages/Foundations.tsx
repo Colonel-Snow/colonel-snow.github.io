@@ -1,6 +1,25 @@
 import './Foundations.css'
 
+const TYPEFACES = [
+  {
+    token: '--font-sans',
+    label: 'Sans — Chakra Petch',
+    sample: 'Body & interface',
+  },
+  {
+    token: '--font-display',
+    label: 'Display — Chakra Petch',
+    sample: 'Viewfinder titles',
+  },
+  {
+    token: '--font-mono',
+    label: 'Mono — Chakra Petch',
+    sample: 'Readouts & code',
+  },
+]
+
 const TYPE_SCALE = [
+  { token: '--text-6xl', px: 72, label: 'Hero' },
   { token: '--text-5xl', px: 60, label: 'Display' },
   { token: '--text-4xl', px: 48, label: 'H1' },
   { token: '--text-3xl', px: 36, label: 'H2' },
@@ -19,6 +38,25 @@ const WEIGHTS = [
   { token: '--font-semibold', value: 600, label: 'Semibold' },
   { token: '--font-bold', value: 700, label: 'Bold' },
   { token: '--font-extrabold', value: 800, label: 'Extrabold' },
+]
+
+const RADII = [
+  { token: '--radius-sm', label: '4px' },
+  { token: '--radius-md', label: '8px' },
+  { token: '--radius-lg', label: '16px' },
+  { token: '--radius-pill', label: '999px' },
+]
+
+const OVERLAY = [
+  { token: '--color-hud', label: 'Overlay ink' },
+  { token: '--color-hud-dim', label: 'Overlay ink, dimmed' },
+  { token: '--color-hud-line', label: 'Bracket & rule' },
+  { token: '--color-hud-veil', label: 'Filled chrome' },
+  { token: '--color-hud-rec', label: 'Recording dot' },
+  { token: '--color-scrim', label: 'Photo scrim' },
+  { token: '--color-chrome', label: 'Floating menu backing' },
+  { token: '--color-chrome-hover', label: 'Floating menu, hovered' },
+  { token: '--color-chrome-border', label: 'Floating menu hairline' },
 ]
 
 const SPACE_SCALE = [
@@ -47,6 +85,26 @@ function Foundations() {
       </header>
 
       <section className="foundations__section">
+        <h2 className="foundations__section-title">Typefaces</h2>
+        <ul className="font-scale">
+          {TYPEFACES.map((face) => (
+            <li key={face.token} className="font-scale__row">
+              <span
+                className="font-scale__sample"
+                style={{ fontFamily: `var(${face.token})` }}
+              >
+                {face.sample}
+              </span>
+              <span className="font-scale__meta">
+                <span className="font-scale__label">{face.label}</span>
+                <span className="font-scale__token">{face.token}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="foundations__section">
         <h2 className="foundations__section-title">Type scale</h2>
         <ul className="type-scale">
           {TYPE_SCALE.map((step) => (
@@ -66,6 +124,11 @@ function Foundations() {
             </li>
           ))}
         </ul>
+        <p className="foundations__note foundations__note--after">
+          <code>--text-display</code> is the fluid hero size used on Home:
+          it scales between <code>--text-2xl</code> and <code>--text-5xl</code>{' '}
+          with the viewport.
+        </p>
       </section>
 
       <section className="foundations__section">
@@ -81,6 +144,44 @@ function Foundations() {
               </span>
               <span className="weight-scale__token">
                 {weight.token} · {weight.value}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="foundations__section">
+        <h2 className="foundations__section-title">Radii</h2>
+        <ul className="swatch-scale">
+          {RADII.map((radius) => (
+            <li key={radius.token} className="swatch-scale__row">
+              <span
+                className="swatch-scale__chip swatch-scale__chip--radius"
+                style={{ borderRadius: `var(${radius.token})` }}
+              />
+              <span className="swatch-scale__token">
+                {radius.token} · {radius.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="foundations__section">
+        <h2 className="foundations__section-title">Overlay chrome</h2>
+        <p className="foundations__note">
+          Fixed in both themes — these sit on the Home photograph, not on the
+          page background.
+        </p>
+        <ul className="swatch-scale">
+          {OVERLAY.map((color) => (
+            <li key={color.token} className="swatch-scale__row">
+              <span
+                className="swatch-scale__chip swatch-scale__chip--color"
+                style={{ backgroundColor: `var(${color.token})` }}
+              />
+              <span className="swatch-scale__token">
+                {color.token} · {color.label}
               </span>
             </li>
           ))}
