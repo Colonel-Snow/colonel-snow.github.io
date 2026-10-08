@@ -12,9 +12,12 @@
   overflow: hidden;
   background: #000;
 
-  /* Inset of the frame chrome from the edges of the viewport. */
-  --scene-inset-x: var(--space-5);
-  --scene-inset-y: var(--space-5);
+  /*
+    Chrome spacing, colour and type are NOT set here — they are the version
+    contract, declared per version at the foot of this file. Only framing,
+    drift and the photo's own geometry live in this block, because those are
+    properties of the picture rather than of a design direction.
+  */
 
   /*
     Photo framing. --photo-aspect must equal the source file's width/height;
@@ -53,7 +56,7 @@
   --drift-frame-y: 4px;
 }
 
-[data-scene='day'] {
+.scene[data-scene='day'] {
   --name-gap: calc(var(--space-10) + var(--space-6));
   /*
     The name block is centred on the frame, and the gull sits a little left
@@ -61,6 +64,67 @@
     lands in the middle of the gap. It moves the picture, not the type.
   */
   --photo-offset-x: 2.1%;
+}
+
+/* ---------------------------------- */
+/* Aperture                            */
+/* ---------------------------------- */
+
+/*
+  The iris, opening on the picture and the chrome together. It clips the two
+  layers rather than the scene itself so the scene's own black stays put
+  behind them — outside the blades you are looking at an unexposed frame,
+  not at the page. No fill mode: the last keyframe already clears the
+  viewport, so letting clip-path fall back to none on finish looks identical
+  and leaves nothing clipping the HUD's pointer targets afterwards.
+*/
+.scene--iris .scene__plate,
+.scene--iris .scene__hud {
+  animation: scene-iris 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* The chrome trails the picture, the way a viewfinder wakes after the lens. */
+.scene--iris .scene__hud {
+  animation-duration: 1.05s;
+}
+
+/*
+  Six blades, swung open. The rotation is what reads as mechanism — real
+  blades pivot as they retract — and it is spent by the time the frame is
+  clear. Percentages resolve against each axis, so the hexagon stretches to
+  the viewport, which is what keeps the opening centred on any shape.
+*/
+@keyframes scene-iris {
+  0% {
+    clip-path: polygon(
+      50% 50%,
+      50% 50%,
+      50% 50%,
+      50% 50%,
+      50% 50%,
+      50% 50%
+    );
+  }
+  55% {
+    clip-path: polygon(
+      62.8% -41.1%,
+      -22.5% -6.6%,
+      -35.3% 84.5%,
+      37.2% 141.1%,
+      122.5% 106.6%,
+      135.3% 15.5%
+    );
+  }
+  100% {
+    clip-path: polygon(
+      50% -115%,
+      -92.9% -32.5%,
+      -92.9% 132.5%,
+      50% 215%,
+      142.9% 132.5%,
+      142.9% -32.5%
+    );
+  }
 }
 
 /* Sized to cover the viewport at any shape, with the photo's own ratio. */
@@ -90,7 +154,7 @@
 .scene__scrim {
   position: absolute;
   inset: 0;
-  background: var(--color-scrim);
+  background: var(--scrim-fill);
 }
 
 .scene__hud {
@@ -169,7 +233,7 @@
   border-radius: var(--radius-pill);
   background: var(--color-hud-rec);
   box-shadow: 0 0 var(--space-2) var(--color-hud-rec);
-  animation: scene-rec-blink 1.4s steps(1, end) infinite;
+  animation: var(--rec-animation);
 }
 
 @keyframes scene-rec-blink {
@@ -252,9 +316,9 @@
   gap: var(--name-gap);
   font-family: var(--font-display);
   font-size: var(--text-display);
-  font-weight: var(--font-semibold);
+  font-weight: var(--name-weight);
   line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-wider);
+  letter-spacing: var(--name-tracking);
   text-transform: uppercase;
   color: var(--color-hud);
 }
@@ -263,9 +327,9 @@
   margin-top: var(--space-5);
   font-family: var(--font-display);
   font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  letter-spacing: var(--tracking-wide);
-  color: var(--color-hud);
+  font-weight: var(--tagline-weight);
+  letter-spacing: var(--tagline-tracking);
+  color: var(--tagline-color);
 }
 
 /* ---------------------------------- */
@@ -281,7 +345,29 @@
     calc(-50% - (var(--pointer-y) * var(--drift-frame-y)));
   width: min(36%, calc(var(--space-10) * 4));
   height: min(30%, calc(var(--space-10) * 2.5));
+}
+
+/*
+  A metering ring rather than a focus box — the shape a spot meter is etched
+  as on a focusing screen. The conic mask is the soft part: the stroke is
+  fullest at top and bottom and thins to nothing at either side, so the ring
+  settles into the photograph instead of being ruled over it. It sits on a
+  pseudo-element because a mask set on .scene__frame would take the edge
+  ticks with it, and those are children.
+*/
+.scene__frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
   border: var(--border-thin) solid var(--color-hud-veil);
+  border-radius: 50%;
+  mask: conic-gradient(
+    #000,
+    transparent 25%,
+    #000 50%,
+    transparent 75%,
+    #000
+  );
 }
 
 /* Centre marks on each edge, pointing in. */
@@ -337,11 +423,14 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-6);
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   list-style: none;
   font-family: var(--font-display);
+  /* Body leading pads each line box, which reads as extra gap under the
+     large active item — display leading keeps the three items as one stack. */
+  line-height: var(--leading-tight);
   text-transform: uppercase;
 }
 
@@ -357,13 +446,13 @@
   font-weight: var(--font-medium);
   letter-spacing: var(--tracking-wider);
   color: var(--color-hud-dim);
-  transform-origin: left center;
-  transition: color 0.2s ease, scale 0.2s ease;
+  transition: color 0.2s ease, translate 0.2s ease;
 }
 
+/* Nudged right on hover, so the item leans out of the stack toward the frame. */
 .scene__menu-item:hover {
   color: var(--color-hud);
-  scale: 1.18;
+  translate: var(--space-2) 0;
 }
 
 .scene__menu-item:focus-visible {
@@ -398,12 +487,14 @@ span.scene__menu-item {
   left: var(--scene-inset-x);
   border-right-color: transparent;
   border-top-color: transparent;
+  border-bottom-left-radius: var(--corner-radius);
 }
 
 .scene__corner--br {
   right: var(--scene-inset-x);
   border-left-color: transparent;
   border-top-color: transparent;
+  border-bottom-right-radius: var(--corner-radius);
 }
 
 .scene__card {
@@ -595,19 +686,28 @@ span.scene__menu-item {
 }
 
 
+/*
+  Set against the right edge as a counterweight to the menu: same midline,
+  same gap, mirrored. It is held a space clear of .scene__rule--right, which
+  runs down this edge through the middle of the frame, so the hairline reads
+  as the margin the type is set against rather than a line struck through it.
+*/
 .scene__meta {
   position: absolute;
-  bottom: calc(var(--scene-inset-y) + var(--space-4));
-  left: 50%;
-  translate: -50% 0;
+  top: 50%;
+  right: calc(var(--scene-inset-x) + var(--space-4));
+  translate: 0 -50%;
   display: flex;
-  align-items: center;
-  gap: var(--space-7);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+  text-align: right;
   /* Set to match .scene__card-labels, the type under the map. */
   font-family: var(--font-display);
   font-size: var(--text-md);
   font-weight: var(--font-medium);
   letter-spacing: var(--tracking-wide);
+  line-height: var(--leading-tight);
   text-transform: capitalize;
   white-space: nowrap;
 }
@@ -616,25 +716,13 @@ span.scene__menu-item {
 /* Responsive                          */
 /* ---------------------------------- */
 
-@media (min-width: 1024px) {
-  .scene {
-    --scene-inset-x: var(--space-8);
-    --scene-inset-y: var(--space-7);
-  }
-}
-
 @media (max-width: 720px) {
-  .scene {
-    --scene-inset-x: var(--space-4);
-    --scene-inset-y: var(--space-4);
-  }
-
   /*
     The plate is far wider than a phone viewport, so the same percentage
     shifts the photo much further here — and the gap is narrower. The gull
     already falls near the middle of it unshifted.
   */
-  [data-scene='day'] {
+  .scene[data-scene='day'] {
     --name-gap: var(--space-7);
     --photo-offset-x: 0%;
   }
@@ -673,14 +761,17 @@ span.scene__menu-item {
     font-size: var(--text-xs);
   }
 
-  /* Too long to hold one line at this width, so it wraps and centres. */
+  /* Nothing spare beside the name at this width, so it drops back to the
+     bottom edge, still stacked but centred over the two cards. */
   .scene__meta {
+    top: auto;
+    right: auto;
     bottom: calc(var(--scene-inset-y) + var(--space-10) + var(--space-4));
-    gap: var(--space-2) var(--space-4);
-    width: calc(100% - var(--space-8));
-    flex-wrap: wrap;
-    justify-content: center;
-    white-space: normal;
+    left: 50%;
+    translate: -50% 0;
+    align-items: center;
+    gap: var(--space-2);
+    text-align: center;
     font-size: var(--text-xs);
   }
 
@@ -690,7 +781,9 @@ span.scene__menu-item {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .scene__rec-dot {
+  .scene__rec-dot,
+  .scene--iris .scene__plate,
+  .scene--iris .scene__hud {
     animation: none;
   }
 
@@ -700,5 +793,127 @@ span.scene__menu-item {
   .scene__map-view,
   .scene__tool {
     transition: none;
+  }
+}
+
+/* ---------------------------------- */
+/* Versions                            */
+/* ---------------------------------- */
+
+/*
+  THE VERSION CONTRACT.
+
+  A version of this page is a block of values and nothing else — no new
+  selectors, no duplicated rules, no component branch. Everything above
+  consumes these knobs; everything below supplies them. To add version 03,
+  copy a block, change numbers, add '03' to VERSIONS in Home.versions.ts. That is
+  the whole procedure.
+
+  Both versions are declared in full rather than one being written as a diff
+  against the other. It costs a few repeated lines and buys two things that
+  matter more while iterating: either version can be deleted by deleting its
+  block, and neither is secretly the base that the other is defined against.
+
+  The knobs:
+    --scene-inset-x/y  chrome's distance from the viewport edge
+    --color-hud*       the chrome palette, overriding the global tokens
+                       inside this subtree only
+    --shadow-hud       how hard the chrome sits off the photograph
+    --name-*           display type for the name
+    --tagline-*        display type for the line under it
+    --rec-animation    the recording light's whole animation shorthand
+    --corner-radius    radius on the corner each bracket turns
+    --scrim-fill       whatever is laid over the photograph for legibility
+*/
+
+/* Version 01 — the camcorder read. Hard white, tight to the edge, blinking. */
+.scene[data-version='01'] {
+  --scene-inset-x: var(--space-5);
+  --scene-inset-y: var(--space-5);
+
+  --color-hud: #ffffff;
+  --color-hud-dim: rgba(255, 255, 255, 0.78);
+  --color-hud-line: rgba(255, 255, 255, 0.88);
+  --color-hud-veil: rgba(255, 255, 255, 0.28);
+  --color-hud-rec: #ff3b30;
+  --shadow-hud: 0 1px 4px rgba(0, 0, 0, 0.5), 0 0 2px rgba(0, 0, 0, 0.35);
+
+  --name-weight: var(--font-semibold);
+  --name-tracking: var(--tracking-wider);
+  --tagline-weight: var(--font-semibold);
+  --tagline-tracking: var(--tracking-wide);
+  --tagline-color: var(--color-hud);
+
+  --rec-animation: scene-rec-blink 1.4s steps(1, end) infinite;
+  --corner-radius: 0;
+  --scrim-fill: var(--color-scrim);
+}
+
+/*
+  Version 02 — the same instrument, drawn more lightly. Pure #fff on a
+  photograph reads as a screenshot; a warm off-white reads as glass with a
+  coating on it. Lines lose about a third of their opacity, the type sheds a
+  weight and tightens, the frame breathes wider, and the recording light
+  pulses instead of flashing.
+*/
+.scene[data-version='02'] {
+  --scene-inset-x: var(--space-7);
+  --scene-inset-y: var(--space-6);
+
+  --color-hud: #f7f4f0;
+  --color-hud-dim: rgba(247, 244, 240, 0.62);
+  --color-hud-line: rgba(247, 244, 240, 0.58);
+  --color-hud-veil: rgba(247, 244, 240, 0.18);
+  /* A tally lamp, not a warning light. */
+  --color-hud-rec: #ff6b5a;
+  --shadow-hud: 0 1px 3px rgba(0, 0, 0, 0.42);
+
+  /* Semibold set wide is how equipment stencils a label; regular set tight
+     is how a title is set. */
+  --name-weight: var(--font-regular);
+  --name-tracking: var(--tracking-wide);
+  --tagline-weight: var(--font-regular);
+  --tagline-tracking: var(--tracking-wider);
+  --tagline-color: var(--color-hud-dim);
+
+  --rec-animation: scene-rec-pulse 3.2s ease-in-out infinite;
+  --corner-radius: var(--radius-lg);
+  /* A vignette rather than a flat wash: the same total darkening, spent at
+     the edges where the chrome sits instead of over the subject. */
+  --scrim-fill: radial-gradient(
+    ellipse 78% 68% at 50% 46%,
+    rgba(0, 0, 0, 0) 40%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+@keyframes scene-rec-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Desktop gives each version more room, in its own proportion. */
+@media (min-width: 1024px) {
+  .scene[data-version='01'] {
+    --scene-inset-x: var(--space-8);
+    --scene-inset-y: var(--space-7);
+  }
+
+  .scene[data-version='02'] {
+    --scene-inset-x: var(--space-9);
+    --scene-inset-y: var(--space-8);
+  }
+}
+
+@media (max-width: 720px) {
+  .scene[data-version='01'],
+  .scene[data-version='02'] {
+    --scene-inset-x: var(--space-4);
+    --scene-inset-y: var(--space-4);
   }
 }

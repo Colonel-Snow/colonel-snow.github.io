@@ -254,10 +254,17 @@ function useHandheldDrift(ref: React.RefObject<HTMLElement | null>) {
 interface HomeProps {
   /* The viewfinder's way out to the rest of the site. */
   onNavigate: (tab: Tab) => void
+  /*
+    Which cut of the chrome to draw. Passed straight through to a data
+    attribute and never branched on: the component does not know what a
+    version means, which is what lets a new one be added in CSS alone.
+  */
+  version?: string
 }
 
-function Home({ onNavigate }: HomeProps) {
+function Home({ onNavigate, version = '01' }: HomeProps) {
   const sceneRef = useRef<HTMLElement>(null)
+  const openedOnce = useRef(false)
   const [startedAt] = useState(() => Date.now())
   const [now, setNow] = useState(() => Date.now())
   const [sceneIndex, setSceneIndex] = useState(0)
@@ -272,9 +279,29 @@ function Home({ onNavigate }: HomeProps) {
     return () => clearInterval(id)
   }, [])
 
+  /*
+    The iris opens on first paint from the class alone, so the picture is
+    never shown before the blades close over it. Changing exposure has to
+    re-run that same animation, and an element that has already finished one
+    will not replay it just because the class is set again — the class comes
+    off, a reflow is forced to flush the removal, and it goes back on.
+  */
+  useEffect(() => {
+    if (!openedOnce.current) {
+      openedOnce.current = true
+      return
+    }
+    const node = sceneRef.current
+    if (!node) return
+    node.classList.remove('scene--iris')
+    void node.offsetWidth
+    node.classList.add('scene--iris')
+  }, [sceneIndex])
+
   return (
     <section
-      className="scene"
+      className="scene scene--iris"
+      data-version={version}
       ref={sceneRef}
       data-scene={scene.id}
       style={
